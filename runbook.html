@@ -1,0 +1,837 @@
+<title>Latitude 5320 サーバー化計画</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+
+<style>
+  :root {
+    --ground: #f4f6f8;
+    --surface: #ffffff;
+    --surface-2: #eef1f4;
+    --ink: #1a1f27;
+    --ink-soft: #47515f;
+    --muted: #6b7684;
+    --line: #d9dee4;
+    --line-strong: #c2c9d2;
+    --accent: #0e7c74;
+    --accent-ink: #0a5a54;
+    --hands: #9a6410;
+    --hands-bg: #f6ecd8;
+    --ok: #2f7d4f;
+    --danger: #b23324;
+    --danger-bg: #f7e6e3;
+    --term-bg: #171b21;
+    --term-ink: #dfe4ea;
+    --term-dim: #8a94a2;
+    --term-accent: #4fb8ad;
+    --shadow: 0 1px 2px rgba(20,25,33,.06), 0 8px 24px rgba(20,25,33,.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #12151a;
+      --surface: #1a1e25;
+      --surface-2: #21262e;
+      --ink: #e7eaef;
+      --ink-soft: #b8c0cb;
+      --muted: #8b95a2;
+      --line: #2c323b;
+      --line-strong: #3a424d;
+      --accent: #43b7ac;
+      --accent-ink: #6fd0c6;
+      --hands: #d9a441;
+      --hands-bg: #2e2717;
+      --ok: #5cbd7f;
+      --danger: #e07a68;
+      --danger-bg: #33211d;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 30px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #12151a;
+    --surface: #1a1e25;
+    --surface-2: #21262e;
+    --ink: #e7eaef;
+    --ink-soft: #b8c0cb;
+    --muted: #8b95a2;
+    --line: #2c323b;
+    --line-strong: #3a424d;
+    --accent: #43b7ac;
+    --accent-ink: #6fd0c6;
+    --hands: #d9a441;
+    --hands-bg: #2e2717;
+    --ok: #5cbd7f;
+    --danger: #e07a68;
+    --danger-bg: #33211d;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 30px rgba(0,0,0,.35);
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 68px; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: "IBM Plex Sans", system-ui, "Hiragino Kaku Gothic ProN", "Noto Sans JP", Meiryo, sans-serif;
+    font-size: 16px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .progress-rail {
+    position: sticky; top: 0; z-index: 20;
+    height: 4px; background: var(--line);
+  }
+  .progress-fill {
+    height: 100%; width: 0%;
+    background: var(--accent);
+    transition: width .35s ease;
+  }
+  @media (prefers-reduced-motion: reduce) { .progress-fill { transition: none; } }
+
+  .wrap {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 0 clamp(18px, 5vw, 40px) 120px;
+  }
+
+  header.masthead {
+    padding: clamp(40px, 8vw, 76px) 0 32px;
+    border-bottom: 1px solid var(--line);
+  }
+  .kicker {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .74rem;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--accent-ink);
+    margin: 0 0 14px;
+  }
+  h1 {
+    font-family: "Archivo", system-ui, sans-serif;
+    font-weight: 700;
+    font-size: clamp(1.9rem, 5.5vw, 2.8rem);
+    line-height: 1.1;
+    letter-spacing: -.015em;
+    text-wrap: balance;
+    margin: 0 0 18px;
+  }
+  .lede {
+    font-size: 1.06rem;
+    color: var(--ink-soft);
+    max-width: 60ch;
+    margin: 0;
+  }
+  .machine {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    margin-top: 24px;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .78rem;
+  }
+  .machine span {
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    padding: 4px 9px;
+    color: var(--ink-soft);
+  }
+
+  h2 {
+    font-family: "Archivo", system-ui, sans-serif;
+    font-weight: 650;
+    font-size: clamp(1.28rem, 3.4vw, 1.6rem);
+    letter-spacing: -.01em;
+    line-height: 1.2;
+    text-wrap: balance;
+    margin: 0;
+  }
+  h3 {
+    font-family: "Archivo", system-ui, sans-serif;
+    font-weight: 600;
+    font-size: 1.02rem;
+    margin: 26px 0 10px;
+  }
+  p { margin: 0 0 14px; }
+  a { color: var(--accent-ink); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  strong { font-weight: 600; }
+  ul, ol { margin: 0 0 14px; padding-left: 1.35em; }
+  li { margin: 5px 0; }
+  li::marker { color: var(--muted); }
+
+  /* ---- contents ---- */
+  nav.toc {
+    margin: 34px 0 8px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 20px 22px;
+    box-shadow: var(--shadow);
+  }
+  nav.toc p {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .72rem; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--muted); margin: 0 0 12px;
+  }
+  nav.toc ol { list-style: none; padding: 0; margin: 0; display: grid; gap: 3px; }
+  nav.toc li { margin: 0; }
+  nav.toc a {
+    display: flex; gap: 12px; align-items: baseline;
+    padding: 5px 8px; border-radius: 6px;
+    color: var(--ink-soft); text-decoration: none;
+    font-size: .92rem;
+  }
+  nav.toc a:hover { background: var(--surface-2); color: var(--ink); }
+  nav.toc a .n {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .78rem; color: var(--accent-ink); flex: none; width: 1.4em;
+  }
+
+  /* ---- callouts ---- */
+  .box {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 18px 20px;
+    margin: 18px 0;
+    box-shadow: var(--shadow);
+  }
+  .box.verdict { border-left: 3px solid var(--accent); }
+  .box.scope { border-left: 3px solid var(--ink-soft); }
+  .box-title {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .72rem; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--muted); margin: 0 0 10px;
+  }
+  .box p:last-child, .box ul:last-child, .box ol:last-child { margin-bottom: 0; }
+
+  .tag {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .68rem; letter-spacing: .08em; text-transform: uppercase;
+    padding: 3px 8px; border-radius: 999px;
+    border: 1px solid currentColor;
+    vertical-align: middle;
+  }
+  .tag.hands { color: var(--hands); background: var(--hands-bg); }
+  .tag.term { color: var(--accent-ink); background: var(--surface-2); }
+  .tag.danger { color: var(--danger); background: var(--danger-bg); }
+
+  /* ---- phase ---- */
+  section.phase {
+    margin: 44px 0 0;
+    padding-top: 30px;
+    border-top: 1px solid var(--line);
+  }
+  .phase-head { display: flex; gap: 16px; align-items: flex-start; }
+  .phase-num {
+    font-family: "Archivo", monospace;
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: var(--accent);
+    background: var(--surface-2);
+    border: 1px solid var(--line-strong);
+    border-radius: 8px;
+    min-width: 42px; height: 42px;
+    display: flex; align-items: center; justify-content: center;
+    flex: none;
+    font-variant-numeric: tabular-nums;
+  }
+  .phase-head-text { flex: 1; }
+  .phase-tags { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 9px; }
+  .phase-body { margin-top: 16px; }
+
+  /* ---- checklist ---- */
+  .check {
+    display: flex; gap: 11px; align-items: flex-start;
+    padding: 9px 0;
+    border-bottom: 1px dashed var(--line);
+  }
+  .check:last-child { border-bottom: 0; }
+  .check input {
+    appearance: none; -webkit-appearance: none;
+    width: 19px; height: 19px; margin: 3px 0 0; flex: none;
+    border: 1.5px solid var(--line-strong);
+    border-radius: 5px;
+    background: var(--surface);
+    cursor: pointer;
+    display: grid; place-content: center;
+    transition: background .15s, border-color .15s;
+  }
+  .check input::before {
+    content: ""; width: 10px; height: 10px;
+    transform: scale(0);
+    transition: transform .12s ease;
+    box-shadow: inset 1em 1em var(--surface);
+    clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+  }
+  .check input:checked { background: var(--accent); border-color: var(--accent); }
+  .check input:checked::before { transform: scale(1); }
+  .check input:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) { .check input, .check input::before { transition: none; } }
+  .check label { cursor: pointer; flex: 1; }
+  .check input:checked + label { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--line-strong); }
+
+  /* ---- terminal ---- */
+  .cmd {
+    background: var(--term-bg);
+    border-radius: 10px;
+    margin: 14px 0;
+    overflow: hidden;
+    border: 1px solid #2a2f37;
+  }
+  .cmd-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 7px 12px;
+    background: #1f242c;
+    border-bottom: 1px solid #2a2f37;
+  }
+  .cmd-bar span {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .68rem; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--term-dim);
+  }
+  .cmd-copy {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .7rem;
+    background: transparent;
+    border: 1px solid #3a414b;
+    color: var(--term-dim);
+    border-radius: 5px;
+    padding: 3px 9px;
+    cursor: pointer;
+  }
+  .cmd-copy:hover { color: var(--term-ink); border-color: #55606c; }
+  .cmd pre {
+    margin: 0; padding: 13px 15px;
+    overflow-x: auto;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .82rem;
+    line-height: 1.6;
+    color: var(--term-ink);
+  }
+  .cmd pre .c { color: var(--term-dim); }
+  .cmd pre .p { color: var(--term-accent); }
+
+  code:not(.cmd code) {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .86em;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 1px 5px;
+  }
+
+  .note {
+    font-size: .92rem;
+    color: var(--ink-soft);
+    border-left: 2px solid var(--line-strong);
+    padding-left: 14px;
+    margin: 14px 0;
+  }
+  .note.warn { border-color: var(--hands); }
+  .note.warn strong { color: var(--hands); }
+
+  table.mini {
+    width: 100%; border-collapse: collapse; margin: 14px 0; font-size: .9rem;
+  }
+  table.mini th, table.mini td {
+    text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line);
+    vertical-align: top;
+  }
+  table.mini th { font-family: "IBM Plex Mono", monospace; font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+
+  footer {
+    margin-top: 60px; padding-top: 24px;
+    border-top: 1px solid var(--line);
+    font-size: .86rem; color: var(--muted);
+  }
+  .reset-btn {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .74rem;
+    background: var(--surface); border: 1px solid var(--line-strong);
+    color: var(--ink-soft); border-radius: 6px; padding: 6px 12px; cursor: pointer;
+    margin-top: 10px;
+  }
+  .reset-btn:hover { border-color: var(--danger); color: var(--danger); }
+
+  @media (max-width: 540px) {
+    .phase-num { min-width: 36px; height: 36px; font-size: .95rem; }
+    .phase-head { gap: 12px; }
+  }
+</style>
+
+<div class="progress-rail"><div class="progress-fill" id="pfill"></div></div>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="kicker">Home Server Build / Runbook</p>
+    <h1>Latitude 5320 サーバー化計画</h1>
+    <p class="lede">Dell Latitude 5320 を初期化して Ubuntu Server にし、FiveM ゲームサーバーと「どこからでも使える Claude Code 環境」を同居させるまでの作業手順。上から順に、チェックを付けながら進められます（進捗はこの端末に保存されます）。</p>
+    <div class="machine">
+      <span>Dell Latitude 5320</span>
+      <span>Core i7-1185G7 · 4C/8T</span>
+      <span>RAM 16GB</span>
+      <span>SSD 256GB（旧ドライブに換装）</span>
+      <span>Ubuntu Server 24.04 LTS</span>
+    </div>
+  </header>
+
+  <div class="box verdict">
+    <p class="box-title">ハード評価</p>
+    <p>この用途なら十分です。<strong>ローカル〜少人数の FiveM（目安〜16人程度）＋ Claude Code の同時運用は快適</strong>。大人数・大量 MOD になると 4 コアが頭打ちになります。256GB は OS＋FiveM（実測 20〜40GB 程度）で問題なし。ノートPCなのでバッテリーが簡易 UPS 代わりになり、常時稼働にも向きます。</p>
+  </div>
+
+  <div class="box scope">
+    <p class="box-title">この構成でできること / 制約</p>
+    <ul>
+      <li><strong>SSH・Claude Code:</strong> 外出先を含めどこからでも接続可（Cloudflare 経由、ルーターのポート開放は不要）。</li>
+      <li><strong>FiveM:</strong> 友人を招くにはルーターで <code>30120</code> TCP/UDP のポート開放が必須。<em>Cloudflare の無料プランはゲームの UDP を中継しません</em>。</li>
+      <li><strong>24時間稼働:</strong> フタを閉じても止まらない設定 ＋ 停電復帰後の自動起動（BIOS）を入れます。</li>
+      <li><strong>2TB ドライブ:</strong> 抜いて新 PC に転用（そちらでフォーマット）。バックアップは取らない方針（本人決定・2026-08-31）。</li>
+    </ul>
+  </div>
+
+  <nav class="toc">
+    <p>Phases</p>
+    <ol id="toc"></ol>
+  </nav>
+
+  <!-- ============ PHASE 0 ============ -->
+  <section class="phase" id="p0">
+    <div class="phase-head">
+      <div class="phase-num">0</div>
+      <div class="phase-head-text">
+        <h2>準備するもの・前提の確認</h2>
+        <div class="phase-tags"><span class="tag hands">手を動かす</span></div>
+      </div>
+    </div>
+    <div class="phase-body">
+      <ul>
+        <li><strong>USBメモリ 8GB 以上</strong> 1本 … Ubuntu インストーラ用（中身は消えます）。</li>
+        <li><strong>別の端末</strong>（スマホ or 他のPC）… インストール後は本体に画面をつながず、SSH で操作します。認証時に QR/URL を開くのにも使用。</li>
+        <li><strong>有線LAN</strong>が理想（初期設定が安定）。無線でも可。</li>
+        <li><strong>Cloudflare アカウント</strong>（無料）。独自ドメインがあると設定が楽ですが、無くても WARP 方式で対応できます（Phase 8）。</li>
+        <li><strong>Cfx.re アカウント</strong>（無料）… FiveM サーバーのライセンスキー取得用。</li>
+      </ul>
+      <div class="note warn"><strong>データ方針:</strong> バックアップは取らない（本人決定）。2TB・256GB とも全消し。卒業設計・LINE 履歴を含め復元不可。この手順書 URL と Cloudflare / Cfx.re のログイン情報だけはスマホ等、ノート外に控える（換装後は今の Windows 環境が消えるため）。</li></div>
+      <div class="check"><input type="checkbox" id="c0-1"><label for="c0-1">手順書 URL とアカウント情報をノート外（スマホ等）に控えた</label></div>
+      <div class="check"><input type="checkbox" id="c0-2"><label for="c0-2">Ubuntu インストーラ USB を作成済み（Phase 1 完了）</label></div>
+      <div class="check"><input type="checkbox" id="c0-3"><label for="c0-3">Cloudflare / Cfx.re アカウントを作成した</label></div>
+      <div class="check"><input type="checkbox" id="c0-4"><label for="c0-4">サーバーを操作する端末（スマホ / 別 PC）を決めた</label></div>
+    </div>
+  </section>
+
+  <!-- ============ PHASE 1 ============ -->
+  <section class="phase" id="p1">
+    <div class="phase-head">
+      <div class="phase-num">1</div>
+      <div class="phase-head-text">
+        <h2>インストール USB を作る</h2>
+        <div class="phase-tags"><span class="tag hands">手を動かす</span><span class="tag term">今の Windows で</span></div>
+      </div>
+    </div>
+    <div class="phase-body">
+      <ol>
+        <li><a href="https://ubuntu.com/download/server">ubuntu.com/download/server</a> から <strong>Ubuntu Server 24.04 LTS</strong> の ISO（<code>24.04.x</code> 最新ポイントリリース、約 3GB）をダウンロード。</li>
+        <li><a href="https://etcher.balena.io/">balenaEtcher</a> または <a href="https://rufus.ie/">Rufus</a> をインストール。</li>
+        <li>USB メモリを挿し、ISO を選択して書き込み（Rufus は既定設定のまま「スタート」→ ISO モード）。</li>
+      </ol>
+      <div class="note">ISO のチェックサム（SHA256）をダウンロードページの値と照合しておくと安心です。</div>
+      <div class="check"><input type="checkbox" id="c1-1"><label for="c1-1">Ubuntu Server 24.04 の ISO をダウンロードした</label></div>
+      <div class="check"><input type="checkbox" id="c1-2"><label for="c1-2">USB に書き込んだ</label></div>
+    </div>
+  </section>
+
+  <!-- ============ PHASE 2 ============ -->
+  <section class="phase" id="p2">
+    <div class="phase-head">
+      <div class="phase-num">2</div>
+      <div class="phase-head-text">
+        <h2>SSD を換装する</h2>
+        <div class="phase-tags"><span class="tag hands">手を動かす</span><span class="tag danger">物理・要注意</span></div>
+      </div>
+    </div>
+    <div class="phase-body">
+      <ol>
+        <li>シャットダウン → AC アダプタと周辺機器を全部外す。</li>
+        <li>裏蓋のネジ（Latitude 5320 は 8 本前後、内 2 本は蓋に残る「キャプティブ」）を緩めて開ける。</li>
+        <li>バッテリーコネクタを外す（作業中の通電防止）。</li>
+        <li>M.2 SSD の固定ネジを外し、<strong>2TB (WD_BLACK SN7100)</strong> を抜く → 静電気防止袋に入れて新 PC 用に保管（中身は新 PC 側でフォーマット）。</li>
+        <li><strong>元の 256GB SSD</strong> を挿し、ネジ止め。</li>
+        <li>バッテリーコネクタを戻す → 裏蓋を閉める。</li>
+      </ol>
+      <div class="note warn"><strong>静電気対策:</strong> 金属部に触れて放電してから作業。基板の端子には触れない。バックアップ用 USB は挿しっぱなしにしない。</div>
+      <div class="check"><input type="checkbox" id="c2-1"><label for="c2-1">2TB ドライブを抜いて新 PC 用に保管した</label></div>
+      <div class="check"><input type="checkbox" id="c2-2"><label for="c2-2">256GB を取り付けて裏蓋を閉めた</label></div>
+    </div>
+  </section>
+
+  <!-- ============ PHASE 3 ============ -->
+  <section class="phase" id="p3">
+    <div class="phase-head">
+      <div class="phase-num">3</div>
+      <div class="phase-head-text">
+        <h2>BIOS を設定する</h2>
+        <div class="phase-tags"><span class="tag hands">手を動かす</span></div>
+      </div>
+    </div>
+    <div class="phase-body">
+      <p>電源を入れてすぐ <code>F2</code> を連打して BIOS へ。以下を変更:</p>
+      <table class="mini">
+        <tr><th>項目</th><th>設定</th><th>目的</th></tr>
+        <tr><td>Power → AC Behavior / AC Recovery</td><td><strong>Power On</strong></td><td>停電から復帰したら自動で起動</td></tr>
+        <tr><td>Power → Block Sleep</td><td>有効（任意）</td><td>スリープ抑止の保険</td></tr>
+        <tr><td>Boot Sequence</td><td>USB を最優先 or その場だけ <code>F12</code></td><td>インストーラ起動</td></tr>
+        <tr><td>Secure Boot</td><td>有効のままで可</td><td>Ubuntu は署名済みで起動可能</td></tr>
+      </table>
+      <p>保存して終了（<code>F10</code>）。USB を挿したまま再起動し、<code>F12</code> でブートメニュー → USB デバイスを選択。</p>
+      <div class="check"><input type="checkbox" id="c3-1"><label for="c3-1">AC Recovery を Power On にした</label></div>
+      <div class="check"><input type="checkbox" id="c3-2"><label for="c3-2">USB から起動できた</label></div>
+    </div>
+  </section>
+
+  <!-- ============ PHASE 4 ============ -->
+  <section class="phase" id="p4">
+    <div class="phase-head">
+      <div class="phase-num">4</div>
+      <div class="phase-head-text">
+        <h2>Ubuntu Server をインストール</h2>
+        <div class="phase-tags"><span class="tag hands">画面の指示に沿って</span><span class="tag danger">ディスク全消し</span></div>
+      </div>
+    </div>
+    <div class="phase-body">
+      <ul>
+        <li>言語・キーボード: 日本語 / Japanese。</li>
+        <li>ネットワーク: 有線なら自動で IP 取得。後で固定するのでここはそのまま。</li>
+        <li>ストレージ: <strong>Use an entire disk</strong> → 256GB SSD を選択 → LVM は既定のままで可。<span style="color:var(--danger)">この時点で 256GB の中身は消えます（了承済み）。</span></li>
+        <li>プロファイル: 名前 / サーバー名（例 <code>gameserver</code>）/ ユーザー名（例 <code>ks</code>）/ パスワード。</li>
+        <li><strong>「Install OpenSSH server」に必ずチェック</strong>。</li>
+        <li>Featured snaps: 何も選ばない。</li>
+      </ul>
+      <p>完了したら USB を抜いて再起動。ログインプロンプトが出れば成功。IP アドレスを確認しておく:</p>
+      <div class="cmd"><div class="cmd-bar"><span>server console</span><button class="cmd-copy">copy</button></div><pre>ip -4 addr show scope global | grep inet</pre></div>
+      <div class="check"><input type="checkbox" id="c4-1"><label for="c4-1">全消しでインストール完了、再起動できた</label></div>
+      <div class="check"><input type="checkbox" id="c4-2"><label for="c4-2">OpenSSH server を入れた / サーバーの IP を控えた</label></div>
+    </div>
+  </section>
+
+  <!-- ============ PHASE 5 ============ -->
+  <section class="phase" id="p5">
+    <div class="phase-head">
+      <div class="phase-num">5</div>
+      <div class="phase-head-text">
+        <h2>初回セットアップ</h2>
+        <div class="phase-tags"><span class="tag term">SSH で操作</span></div>
+      </div>
+    </div>
+    <div class="phase-body">
+      <p>別の PC から SSH 接続（Windows なら PowerShell や Windows Terminal で）:</p>
+      <div class="cmd"><div class="cmd-bar"><span>your laptop</span><button class="cmd-copy">copy</button></div><pre>ssh ks@<span class="p">192.168.x.x</span></pre></div>
+      <h3>更新とタイムゾーン</h3>
+      <div class="cmd"><div class="cmd-bar"><span>server</span><button class="cmd-copy">copy</button></div><pre>sudo apt update &amp;&amp; sudo apt full-upgrade -y
+sudo timedatectl set-timezone Asia/Tokyo
+sudo apt install -y tmux htop curl git unattended-upgrades
+sudo dpkg-reconfigure -plow unattended-upgrades   <span class="c"># 自動セキュリティ更新を有効化</span></pre></div>
+      <h3>SSH 鍵ログイン（推奨）</h3>
+      <p>手元の端末で鍵が無ければ作成 → サーバーへ登録:</p>
+      <div class="cmd"><div class="cmd-bar"><span>your laptop</span><button class="cmd-copy">copy</button></div><pre><span class="c"># 鍵が無ければ</span>
+ssh-keygen -t ed25519
+<span class="c"># サーバーへコピー</span>
+ssh-copy-id ks@<span class="p">192.168.x.x</span></pre></div>
+      <p>鍵で入れることを確認したら、パスワード認証を無効化:</p>
+      <div class="cmd"><div class="cmd-bar"><span>server</span><button class="cmd-copy">copy</button></div><pre>sudo sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
+sudo systemctl restart ssh</pre></div>
+      <h3>ファイアウォール</h3>
+      <div class="cmd"><div class="cmd-bar"><span>server</span><button class="cmd-copy">copy</button></div><pre>sudo ufw allow OpenSSH
+sudo ufw --force enable</pre></div>
+      <div class="note">ルーターの DHCP 設定で、このサーバーの MAC アドレスに固定 IP を割り当てておくと以後ラク（「DHCP 予約」）。</div>
+      <div class="check"><input type="checkbox" id="c5-1"><label for="c5-1">SSH で接続できた</label></div>
+      <div class="check"><input type="checkbox" id="c5-2"><label for="c5-2">更新・タイムゾーン・自動更新を設定した</label></div>
+      <div class="check"><input type="checkbox" id="c5-3"><label for="c5-3">鍵ログインにしてパスワード認証を無効化した</label></div>
+      <div class="check"><input type="checkbox" id="c5-4"><label for="c5-4">DHCP 予約で固定 IP にした</label></div>
+    </div>
+  </section>
+
+  <!-- ============ PHASE 6 ============ -->
+  <section class="phase" id="p6">
+    <div class="phase-head">
+      <div class="phase-num">6</div>
+      <div class="phase-head-text">
+        <h2>フタを閉じても止まらないようにする</h2>
+        <div class="phase-tags"><span class="tag term">SSH で操作</span></div>
+      </div>
+    </div>
+    <div class="phase-body">
+      <div class="cmd"><div class="cmd-bar"><span>server</span><button class="cmd-copy">copy</button></div><pre>sudo sed -i 's/^#\?HandleLidSwitch=.*/HandleLidSwitch=ignore/' /etc/systemd/logind.conf
+sudo sed -i 's/^#\?HandleLidSwitchExternalPower=.*/HandleLidSwitchExternalPower=ignore/' /etc/systemd/logind.conf
+sudo systemctl restart systemd-logind
+
+<span class="c"># スリープ／休止を完全に無効化</span>
+sudo systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target</pre></div>
+      <p>これでフタを閉じて棚に置いても稼働し続けます。バッテリーは充電しっぱなしになりますが、常時給電運用では通常問題ありません。</p>
+      <div class="check"><input type="checkbox" id="c6-1"><label for="c6-1">lid switch を ignore、sleep を mask した</label></div>
+      <div class="check"><input type="checkbox" id="c6-2"><label for="c6-2">フタを閉じて SSH が切れないことを確認した</label></div>
+    </div>
+  </section>
+
+  <!-- ============ PHASE 7 ============ -->
+  <section class="phase" id="p7">
+    <div class="phase-head">
+      <div class="phase-num">7</div>
+      <div class="phase-head-text">
+        <h2>遠隔アクセス：Cloudflare で SSH をどこからでも</h2>
+        <div class="phase-tags"><span class="tag term">SSH で操作</span><span class="tag hands">ダッシュボード操作あり</span></div>
+      </div>
+    </div>
+    <div class="phase-body">
+      <p><strong>Cloudflare One / Zero Trust（無料プラン・最大50ユーザー）</strong>で実現できます。ポート開放は不要。方式は 2 つ、独自ドメインの有無で選びます。</p>
+
+      <h3>共通：cloudflared を入れてトンネル作成</h3>
+      <div class="cmd"><div class="cmd-bar"><span>server</span><button class="cmd-copy">copy</button></div><pre>curl -L https://pkg.cloudflare.com/cloudflare-main.gpg | sudo tee /usr/share/keyrings/cloudflare-main.gpg &gt;/dev/null
+echo "deb [signed-by=/usr/share/keyrings/cloudflare-main.gpg] https://pkg.cloudflare.com/cloudflared any main" | sudo tee /etc/apt/sources.list.d/cloudflared.list
+sudo apt update &amp;&amp; sudo apt install -y cloudflared
+cloudflared tunnel login        <span class="c"># ブラウザで認可（URL を別端末で開く）</span>
+cloudflared tunnel create homeserver</pre></div>
+
+      <h3>方式A：独自ドメインあり → Public Hostname + Access</h3>
+      <ol>
+        <li>Zero Trust ダッシュ → <em>Networks → Tunnels → homeserver</em> → <strong>Public Hostname</strong> を追加：<br><code>ssh.example.com</code> / Type: <strong>SSH</strong> / URL: <code>localhost:22</code>。</li>
+        <li><em>Access → Applications</em> で <code>ssh.example.com</code> を「Self-hosted」アプリとして登録し、ポリシーを<strong>自分のメール（ks07shuhei26@gmail.com）のみ許可</strong>に。</li>
+        <li>手元の端末に <code>cloudflared</code> を入れ、<code>~/.ssh/config</code> に:
+          <div class="cmd"><div class="cmd-bar"><span>your laptop · ~/.ssh/config</span><button class="cmd-copy">copy</button></div><pre>Host homeserver
+  HostName ssh.example.com
+  User ks
+  ProxyCommand cloudflared access ssh --hostname %h</pre></div>
+        </li>
+        <li>以後 <code>ssh homeserver</code> で、外出先からでもブラウザ認証付きで接続。</li>
+      </ol>
+
+      <h3>方式B：ドメインなし → WARP + Private Network</h3>
+      <ol>
+        <li>Zero Trust ダッシュ → <em>Networks → Tunnels → homeserver</em> → <strong>Private Network</strong> にサーバーの LAN セグメント（例 <code>192.168.1.0/24</code>）を追加。</li>
+        <li><em>Settings → WARP Client</em> でデバイス登録ポリシーを作成（自分のメールのみ）。</li>
+        <li>手元の PC / スマホに <strong>Cloudflare WARP</strong> アプリを入れ、「Login with Cloudflare Zero Trust」でチーム名を入力して参加。Split Tunnel にそのセグメントを含める。</li>
+        <li>WARP を ON にすれば、外出先からでもサーバーの LAN IP に直接 <code>ssh ks@192.168.1.x</code> で到達。</li>
+      </ol>
+
+      <h3>常駐サービス化</h3>
+      <div class="cmd"><div class="cmd-bar"><span>server</span><button class="cmd-copy">copy</button></div><pre>sudo cloudflared service install
+sudo systemctl enable --now cloudflared</pre></div>
+      <div class="note">より手軽に済ませたい場合の代替は <strong>Tailscale</strong>（<code>curl -fsSL https://tailscale.com/install.sh | sh</code>）。どちらか一方でOK。</div>
+      <div class="check"><input type="checkbox" id="c7-1"><label for="c7-1">cloudflared を入れてトンネルを作成した</label></div>
+      <div class="check"><input type="checkbox" id="c7-2"><label for="c7-2">方式 A か B のどちらかを構成した</label></div>
+      <div class="check"><input type="checkbox" id="c7-3"><label for="c7-3">スマホ回線など外部ネットワークから SSH 接続を確認した</label></div>
+      <div class="check"><input type="checkbox" id="c7-4"><label for="c7-4">cloudflared を systemd で常駐させた</label></div>
+    </div>
+  </section>
+
+  <!-- ============ PHASE 8 ============ -->
+  <section class="phase" id="p8">
+    <div class="phase-head">
+      <div class="phase-num">8</div>
+      <div class="phase-head-text">
+        <h2>Claude Code をサーバーに入れる</h2>
+        <div class="phase-tags"><span class="tag term">SSH で操作</span></div>
+      </div>
+    </div>
+    <div class="phase-body">
+      <h3>Node.js（LTS）を入れる</h3>
+      <div class="cmd"><div class="cmd-bar"><span>server</span><button class="cmd-copy">copy</button></div><pre>curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
+<span class="c"># シェルを開き直してから</span>
+nvm install --lts
+node -v        <span class="c"># v20 以上であること</span></pre></div>
+      <h3>Claude Code 本体</h3>
+      <div class="cmd"><div class="cmd-bar"><span>server</span><button class="cmd-copy">copy</button></div><pre>npm install -g @anthropic-ai/claude-code
+claude        <span class="c"># 初回起動 → 認証 URL が出るので別端末で開いてログイン</span></pre></div>
+      <p>Claude か Anthropic API のアカウントでサインイン（表示された URL を手元のブラウザで開き、コードを貼り戻す）。</p>
+      <h3>接続が切れても作業を続けるために</h3>
+      <p><code>tmux</code> の中で <code>claude</code> を動かせば、SSH を切ってもセッションが残ります:</p>
+      <div class="cmd"><div class="cmd-bar"><span>server</span><button class="cmd-copy">copy</button></div><pre>tmux new -s work     <span class="c"># 作成 / 復帰は tmux attach -t work</span>
+<span class="c"># 切り離しは Ctrl-b → d</span></pre></div>
+      <div class="note">VS Code の「Remote - SSH」でこのサーバーに繋げば、GUI エディタから Claude Code を使えます（方式 A の ProxyCommand をそのまま利用可）。</div>
+      <div class="check"><input type="checkbox" id="c8-1"><label for="c8-1">Node LTS を入れた</label></div>
+      <div class="check"><input type="checkbox" id="c8-2"><label for="c8-2">claude をインストールしてログインした</label></div>
+      <div class="check"><input type="checkbox" id="c8-3"><label for="c8-3">tmux で常駐運用できることを確認した</label></div>
+    </div>
+  </section>
+
+  <!-- ============ PHASE 9 ============ -->
+  <section class="phase" id="p9">
+    <div class="phase-head">
+      <div class="phase-num">9</div>
+      <div class="phase-head-text">
+        <h2>FiveM サーバーを構築</h2>
+        <div class="phase-tags"><span class="tag term">SSH で操作</span></div>
+      </div>
+    </div>
+    <div class="phase-body">
+      <h3>専用ユーザーと依存パッケージ</h3>
+      <div class="cmd"><div class="cmd-bar"><span>server</span><button class="cmd-copy">copy</button></div><pre>sudo apt install -y xz-utils libatomic1 git
+sudo useradd -m -s /bin/bash fivem
+sudo su - fivem</pre></div>
+      <h3>サーバー本体（FXServer）と server-data</h3>
+      <p><a href="https://runtime.fivem.net/artifacts/fivem/build_proot_linux/master/">artifacts ページ</a>で最新の <strong>recommended</strong> ビルドの URL をコピーして:</p>
+      <div class="cmd"><div class="cmd-bar"><span>server · as fivem</span><button class="cmd-copy">copy</button></div><pre>mkdir -p ~/server ~/txData &amp;&amp; cd ~/server
+wget "<span class="p">https://runtime.fivem.net/artifacts/fivem/build_proot_linux/master/XXXX-.../fx.tar.xz</span>"
+tar xf fx.tar.xz &amp;&amp; rm fx.tar.xz
+cd ~ &amp;&amp; git clone https://github.com/citizenfx/cfx-server-data.git server-data</pre></div>
+      <h3>ライセンスキー</h3>
+      <p><a href="https://portal.cfx.re/">portal.cfx.re</a>（旧 keymaster）で無料のサーバーキーを発行。</p>
+      <h3>txAdmin で初期設定</h3>
+      <div class="cmd"><div class="cmd-bar"><span>server · as fivem</span><button class="cmd-copy">copy</button></div><pre>cd ~/server
+./run.sh          <span class="c"># txAdmin が :40120 で起動</span></pre></div>
+      <p>ブラウザで <code>http://&lt;サーバーIP&gt;:40120</code>（外部からは Phase 7 の経路越しに）を開き、ウィザードで管理者アカウント作成 → 「server-data」フォルダとライセンスキーを指定 → 既定のレシピでデプロイ。</p>
+      <h3>systemd で常駐化</h3>
+      <div class="cmd"><div class="cmd-bar"><span>server · /etc/systemd/system/fivem.service</span><button class="cmd-copy">copy</button></div><pre>[Unit]
+Description=FiveM Server (txAdmin)
+After=network-online.target
+
+[Service]
+User=fivem
+WorkingDirectory=/home/fivem/server
+ExecStart=/home/fivem/server/run.sh
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target</pre></div>
+      <div class="cmd"><div class="cmd-bar"><span>server</span><button class="cmd-copy">copy</button></div><pre>sudo systemctl daemon-reload
+sudo systemctl enable --now fivem
+sudo ufw allow 30120                 <span class="c"># ゲーム接続</span>
+sudo ufw allow from 192.168.0.0/16 to any port 40120   <span class="c"># txAdmin は LAN だけ</span></pre></div>
+      <div class="check"><input type="checkbox" id="c9-1"><label for="c9-1">FXServer と server-data を配置した</label></div>
+      <div class="check"><input type="checkbox" id="c9-2"><label for="c9-2">ライセンスキーを取得した</label></div>
+      <div class="check"><input type="checkbox" id="c9-3"><label for="c9-3">txAdmin で初期デプロイした</label></div>
+      <div class="check"><input type="checkbox" id="c9-4"><label for="c9-4">systemd で自動起動にした</label></div>
+      <div class="check"><input type="checkbox" id="c9-5"><label for="c9-5">ローカルの FiveM クライアントから <code>connect &lt;IP&gt;</code> で入れた</label></div>
+    </div>
+  </section>
+
+  <!-- ============ PHASE 10 ============ -->
+  <section class="phase" id="p10">
+    <div class="phase-head">
+      <div class="phase-num">10</div>
+      <div class="phase-head-text">
+        <h2>FiveM を友人に公開する</h2>
+        <div class="phase-tags"><span class="tag hands">ルーター設定</span></div>
+      </div>
+    </div>
+    <div class="phase-body">
+      <ul>
+        <li>ルーターの管理画面で<strong>ポート転送</strong>を追加：外部 <code>30120</code> → サーバー IP <code>30120</code>、<strong>TCP と UDP の両方</strong>。</li>
+        <li>自宅のグローバル IP が変動する場合は <strong>DDNS</strong>（ルーター内蔵機能 or <a href="https://www.duckdns.org/">DuckDNS</a>）を設定。</li>
+        <li>接続テスト：友人に <code>connect &lt;グローバルIP or DDNS名&gt;</code> を試してもらう。<a href="https://www.yougetsignal.com/tools/open-ports/">ポート開放チェッカー</a>で 30120 を確認。</li>
+      </ul>
+      <div class="note warn"><strong>なぜ Cloudflare 越しにできないか:</strong> FiveM のゲーム通信は UDP を使いますが、Cloudflare の無料プランは任意の UDP を中継しません（Spectrum は有料）。管理用の SSH/txAdmin は Cloudflare、ゲームポートだけルーター開放、という住み分けになります。</li></div>
+      <div class="note"><strong>CGNAT に注意:</strong> 携帯回線テザリングや一部の光回線ではグローバル IP が割り当てられずポート開放不可。その場合は playit.gg などのトンネルか、Cloudflare とは別の VPN 方式（友人も WARP/Tailscale 参加）を検討。</div>
+      <div class="check"><input type="checkbox" id="c10-1"><label for="c10-1">ルーターで 30120 TCP/UDP を転送した</label></div>
+      <div class="check"><input type="checkbox" id="c10-2"><label for="c10-2">必要なら DDNS を設定した</label></div>
+      <div class="check"><input type="checkbox" id="c10-3"><label for="c10-3">友人が外部から接続できた</label></div>
+    </div>
+  </section>
+
+  <!-- ============ PHASE 11 ============ -->
+  <section class="phase" id="p11">
+    <div class="phase-head">
+      <div class="phase-num">11</div>
+      <div class="phase-head-text">
+        <h2>運用とメンテ</h2>
+        <div class="phase-tags"><span class="tag term">随時</span></div>
+      </div>
+    </div>
+    <div class="phase-body">
+      <table class="mini">
+        <tr><th>やること</th><th>方法</th></tr>
+        <tr><td>状態確認</td><td><code>systemctl status fivem cloudflared</code> / <code>htop</code> / txAdmin ダッシュ</td></tr>
+        <tr><td>FiveM 更新</td><td>月1目安で新しい recommended ビルドを取得し <code>~/server</code> を差し替え</td></tr>
+        <tr><td>OS 更新</td><td>自動セキュリティ更新済み。<code>sudo apt full-upgrade</code> を時々</td></tr>
+        <tr><td>バックアップ</td><td><code>~/server-data</code>（特に自作 resource）と <code>~/txData</code> を週次で別媒体 / クラウドへ</td></tr>
+        <tr><td>ログ</td><td><code>journalctl -u fivem -f</code></td></tr>
+        <tr><td>熱対策</td><td>ノートは高負荷が続くとサーマルスロットリング。風通しの良い場所へ。<code>sensors</code>（<code>lm-sensors</code>）で温度監視</td></tr>
+      </table>
+      <div class="check"><input type="checkbox" id="c11-1"><label for="c11-1">バックアップの手順（cron など）を用意した</label></div>
+      <div class="check"><input type="checkbox" id="c11-2"><label for="c11-2">再起動しても FiveM と cloudflared が自動復帰することを確認した</label></div>
+    </div>
+  </section>
+
+  <footer>
+    <p>物理作業（SSD 換装・BIOS・USB ブート）は本人の手が必要です。それ以外のコマンド類・設定ファイル・自動化スクリプトは、必要なら具体的に用意します。</p>
+    <p>進捗チェックはこのブラウザ内にのみ保存されます。</p>
+    <button class="reset-btn" id="resetBtn">進捗をリセット</button>
+  </footer>
+
+</div>
+
+<script>
+  (function () {
+    var phases = [
+      ["p0","準備するもの・前提の確認"],
+      ["p1","インストール USB を作る"],
+      ["p2","SSD を換装する"],
+      ["p3","BIOS を設定する"],
+      ["p4","Ubuntu Server をインストール"],
+      ["p5","初回セットアップ"],
+      ["p6","フタを閉じても止まらないようにする"],
+      ["p7","遠隔アクセス：Cloudflare で SSH"],
+      ["p8","Claude Code をサーバーに入れる"],
+      ["p9","FiveM サーバーを構築"],
+      ["p10","FiveM を友人に公開する"],
+      ["p11","運用とメンテ"]
+    ];
+    var toc = document.getElementById("toc");
+    phases.forEach(function (p, i) {
+      var li = document.createElement("li");
+      var a = document.createElement("a");
+      a.href = "#" + p[0];
+      a.innerHTML = '<span class="n">' + String(i).padStart(2, "0") + '</span><span>' + p[1] + '</span>';
+      li.appendChild(a);
+      toc.appendChild(li);
+    });
+
+    var KEY = "lat5320-runbook-v1";
+    var boxes = Array.prototype.slice.call(document.querySelectorAll('.check input[type=checkbox]'));
+    var saved = {};
+    try { saved = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) { saved = {}; }
+
+    function persist() {
+      var o = {};
+      boxes.forEach(function (b) { if (b.checked) o[b.id] = 1; });
+      try { localStorage.setItem(KEY, JSON.stringify(o)); } catch (e) {}
+    }
+    function updateProgress() {
+      var done = boxes.filter(function (b) { return b.checked; }).length;
+      var pct = boxes.length ? Math.round(done / boxes.length * 100) : 0;
+      document.getElementById("pfill").style.width = pct + "%";
+    }
+    boxes.forEach(function (b) {
+      if (saved[b.id]) b.checked = true;
+      b.addEventListener("change", function () { persist(); updateProgress(); });
+    });
+    updateProgress();
+
+    document.getElementById("resetBtn").addEventListener("click", function () {
+      boxes.forEach(function (b) { b.checked = false; });
+      try { localStorage.removeItem(KEY); } catch (e) {}
+      updateProgress();
+    });
+
+    document.querySelectorAll(".cmd-copy").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var pre = btn.closest(".cmd").querySelector("pre");
+        var text = pre.innerText.replace(/​/g, "");
+        function ok() { var t = btn.textContent; btn.textContent = "copied"; setTimeout(function () { btn.textContent = t; }, 1400); }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(ok).catch(function () {});
+        } else {
+          try {
+            var ta = document.createElement("textarea");
+            ta.value = text; document.body.appendChild(ta); ta.select();
+            document.execCommand("copy"); document.body.removeChild(ta); ok();
+          } catch (e) {}
+        }
+      });
+    });
+  })();
+</script>
