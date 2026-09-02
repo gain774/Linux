@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="bank" class="hidden">
+        <div class="panel">
+            <header>
+                <h1 id="title">銀行</h1>
+                <button id="close" class="ghost">閉じる（ESC）</button>
+            </header>
+
+            <div class="balances">
+                <div class="balance">
+                    <span class="label">現金</span>
+                    <span id="cash" class="value">$0</span>
+                </div>
+                <div class="balance">
+                    <span class="label">口座</span>
+                    <span id="bank-balance" class="value">$0</span>
+                </div>
+                <div class="balance">
+                    <span class="label">口座番号</span>
+                    <span id="citizenid" class="value small">-</span>
+                </div>
+            </div>
+
+            <div class="tabs">
+                <button class="tab active" data-tab="deposit">預け入れ</button>
+                <button class="tab" data-tab="withdraw">引き出し</button>
+                <button class="tab" data-tab="transfer" id="tab-transfer">送金</button>
+            </div>
+
+            <div class="forms">
+                <div class="form active" data-form="deposit">
+                    <input id="deposit-amount" type="number" min="1" placeholder="金額">
+                    <button data-submit="deposit">預け入れる</button>
+                </div>
+
+                <div class="form" data-form="withdraw">
+                    <input id="withdraw-amount" type="number" min="1" placeholder="金額">
+                    <button data-submit="withdraw">引き出す</button>
+                </div>
+
+                <div class="form" data-form="transfer">
+                    <input id="transfer-target" type="text" placeholder="相手の口座番号">
+                    <input id="transfer-amount" type="number" min="1" placeholder="金額">
+                    <button data-submit="transfer">送金する</button>
+                </div>
+            </div>
+
+            <h2>取引履歴</h2>
+            <div id="history" class="history"></div>
+        </div>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>

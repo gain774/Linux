@@ -312,6 +312,22 @@ sudo ufw allow 30120
 sudo ufw allow from 192.168.0.0/16 to any port 40120   # txAdmin は LAN のみ
 ```
 
+### Phase 9.5 — 自作フレームワーク gain_* を載せる 【SSH】
+
+有料 MOD を買わずに RP サーバーを成立させるため、フレームワークとリソースを
+このリポジトリ内の `fivem/` に自作している。導入手順・API・進捗は
+[`fivem/docs/DEV.md`](fivem/docs/DEV.md) を参照。
+
+```
+fivem/
+  resources/[gain]/gain_core   # プレイヤー・所持金・権限・ESX/QBCore 互換
+  sql/schema.sql               # MariaDB スキーマ
+  server.cfg.example
+```
+
+概要: MariaDB と oxmysql を入れ、`fivem/sql/schema.sql` を流し、
+`server-data/resources/` にこのリポジトリを clone して `ensure gain_core`。
+
 ### Phase 10 — FiveM を友人に公開 【ルーター設定】
 
 - ルーターでポート転送: 外部 `30120` → サーバー IP `30120`、**TCP と UDP 両方**

@@ -1,0 +1,33 @@
+## gain server 設定例
+## txAdmin が生成する server.cfg にこの内容を反映させる。
+
+endpoint_add_tcp "0.0.0.0:30120"
+endpoint_add_udp "0.0.0.0:30120"
+
+sv_maxclients 16
+sv_hostname "gain server"
+sv_licenseKey "ここに https://portal.cfx.re/ で発行したキー"
+
+## --- 標準リソース（cfx-server-data 同梱） ---
+ensure mapmanager
+ensure chat
+ensure spawnmanager
+ensure sessionmanager
+ensure basic-gamemode
+ensure hardcap
+
+## --- 依存（無料 OSS。server-data/resources/ に配置する） ---
+# https://github.com/overextended/oxmysql/releases
+set mysql_connection_string "mysql://gain:PASSWORD@localhost/gain?charset=utf8mb4"
+ensure oxmysql
+
+## --- gain framework ---
+ensure gain_core
+
+ensure gain_admin
+ensure gain_anticheat
+ensure gain_jobs
+ensure gain_banking
+
+## 管理者の license は gain_core/shared/config.lua の Config.Owners に書く。
+## 自分の license は接続後にサーバーコンソールで確認できる。
