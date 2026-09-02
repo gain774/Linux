@@ -55,3 +55,15 @@ CREATE TABLE IF NOT EXISTS `gain_logs` (
     KEY `idx_logs_category` (`category`),
     KEY `idx_logs_created` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `gain_transactions` (
+    `id`            BIGINT       NOT NULL AUTO_INCREMENT,
+    `citizenid`     VARCHAR(16)  NOT NULL,
+    `kind`          VARCHAR(16)  NOT NULL,
+    `amount`        BIGINT       NOT NULL DEFAULT 0,
+    `counterparty`  VARCHAR(16)  NOT NULL DEFAULT '',
+    `reason`        VARCHAR(128) NOT NULL DEFAULT '',
+    `created_at`    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    KEY `idx_transactions_citizen` (`citizenid`, `id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
