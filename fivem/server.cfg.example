@@ -24,8 +24,8 @@ ensure oxmysql
 ## --- gain framework ---
 ensure gain_core
 
-## M2 以降で有効化する
-# ensure gain_admin
+## M3 以降で有効化する
+ensure gain_admin
 # ensure gain_anticheat
 # ensure gain_jobs
 # ensure gain_banking

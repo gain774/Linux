@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="admin" class="hidden">
+        <div class="panel">
+            <header>
+                <h1>管理メニュー</h1>
+                <div class="header-actions">
+                    <button id="refresh" class="ghost">更新</button>
+                    <button id="close" class="ghost">閉じる（ESC）</button>
+                </div>
+            </header>
+
+            <div class="body">
+                <section class="list">
+                    <input id="search" type="text" placeholder="名前 / ID で絞り込み" autocomplete="off">
+                    <div id="players"></div>
+                </section>
+
+                <section class="detail">
+                    <div id="empty" class="empty">左のリストからプレイヤーを選択</div>
+
+                    <div id="target" class="hidden">
+                        <h2 id="target-name"></h2>
+                        <div id="target-meta" class="meta"></div>
+
+                        <div class="group">
+                            <h3>基本</h3>
+                            <div class="row" data-perm-group>
+                                <button data-action="heal">回復</button>
+                                <button data-action="revive">蘇生</button>
+                                <button data-action="tpto">対象へ移動</button>
+                                <button data-action="bring">呼び寄せ</button>
+                                <button data-action="spectate">観戦 / 解除</button>
+                            </div>
+                        </div>
+
+                        <div class="group" data-action-group="givemoney">
+                            <h3>所持金の付与</h3>
+                            <div class="row">
+                                <select id="money-account">
+                                    <option value="cash">現金</option>
+                                    <option value="bank">銀行</option>
+                                </select>
+                                <input id="money-amount" type="number" min="1" placeholder="金額">
+                                <button data-action="givemoney">付与</button>
+                            </div>
+                        </div>
+
+                        <div class="group" data-action-group="kick">
+                            <h3>キック</h3>
+                            <div class="row">
+                                <input id="kick-reason" type="text" placeholder="理由">
+                                <button data-action="kick" class="danger">キック</button>
+                            </div>
+                        </div>
+
+                        <div class="group" data-action-group="ban">
+                            <h3>BAN</h3>
+                            <div class="row">
+                                <select id="ban-duration"></select>
+                                <input id="ban-reason" type="text" placeholder="理由">
+                                <button data-action="ban" class="danger">BAN</button>
+                            </div>
+                        </div>
+
+                        <div class="group" data-action-group="setperm">
+                            <h3>権限</h3>
+                            <div class="row">
+                                <select id="perm-level">
+                                    <option value="user">user</option>
+                                    <option value="mod">mod</option>
+                                    <option value="admin">admin</option>
+                                    <option value="owner">owner</option>
+                                </select>
+                                <button data-action="setperm">変更</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="group self" data-action-group="vehicle">
+                        <h3>自分</h3>
+                        <div class="row">
+                            <input id="vehicle-model" type="text" placeholder="車両モデル名（例: adder）">
+                            <button id="spawn-vehicle">車をスポーン</button>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>

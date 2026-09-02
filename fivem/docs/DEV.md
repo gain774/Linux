@@ -9,7 +9,7 @@ FiveM 用の自作フレームワーク。有料スクリプトを買わずに�
 | リソース | 役割 | 状態 |
 |---|---|---|
 | `gain_core` | プレイヤー・所持金・権限・ロケール・互換レイヤー | M1 実装済み |
-| `gain_admin` | 管理メニュー（キック / BAN / ワープ等） | M2 予定 |
+| `gain_admin` | 管理メニュー（キック / BAN / ワープ等） | M2 実装済み |
 | `gain_anticheat` | サーバー側検知と段階的処分 | M3 予定 |
 | `gain_jobs` | ジョブと給料 | M4 予定 |
 | `gain_banking` | 現金 / 銀行 / ATM / 送金 | M4 予定 |
@@ -84,6 +84,23 @@ server_scripts {
 カバー: プレイヤー取得 / 所持金（cash・bank）/ 職業 / 通知。
 未カバー: インベントリ、ESX の `RegisterServerCallback`、QBCore の `Shared.Items` など。
 これらを使うリソースは個別対応が必要。互換レイヤーは `Config.Compat` で個別に無効化できる。
+
+## 管理メニュー（gain_admin）
+
+`F6`（`AdminConfig.MenuKey`）または `/admin` で開く。操作ごとの必要権限は
+`gain_admin/shared/config.lua` の `AdminConfig.Actions` で変更できる。
+
+| コマンド | 内容 |
+|---|---|
+| `/gwhoami` | 自分の license をサーバーコンソールに出力（`Config.Owners` 登録用） |
+| `/gkick <ID> <理由>` | キック |
+| `/gban <ID> <分> <理由>` | BAN（分に 0 を指定すると無期限） |
+| `/gunban license:xxxx` | BAN 解除 |
+| `/ggivemoney <ID> <cash\|bank> <額>` | 所持金を付与 |
+| `/gsetperm <ID> <user\|mod\|admin\|owner>` | 権限変更 |
+
+コンソール（RCON / txAdmin）からも同じコマンドが使える。
+キック・BAN・権限変更は「自分と同格以上の相手」には実行できない。
 
 ## 静的チェック
 
