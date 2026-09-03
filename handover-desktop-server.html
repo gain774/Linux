@@ -1,0 +1,567 @@
+<title>引き継ぎ: デスクトップサーバー構成と価格</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<style>
+  :root{
+    --bg:#F6F7F9;
+    --surface:#FFFFFF;
+    --surface-2:#EFF1F5;
+    --ink:#191C22;
+    --ink-2:#3B424E;
+    --muted:#5B6371;
+    --faint:#8A92A0;
+    --border:#DCE0E7;
+    --border-strong:#C2C8D2;
+    --accent:#B25C28;
+    --accent-soft:#F2E3D8;
+    --ok:#2E7A5C;
+    --ok-soft:#DFF0E7;
+    --warn:#8E6209;
+    --warn-soft:#F6ECD4;
+    --block:#A83730;
+    --block-soft:#F7E1DE;
+    --cool:#3E5C76;
+    --shadow:0 1px 2px rgba(25,28,34,.05), 0 8px 24px -16px rgba(25,28,34,.28);
+    --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --sans:"Zen Kaku Gothic New","Hiragino Sans","Yu Gothic UI",system-ui,-apple-system,"Segoe UI",sans-serif;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --bg:#14171C;
+      --surface:#1B1F26;
+      --surface-2:#222731;
+      --ink:#E5E8EE;
+      --ink-2:#C6CCD7;
+      --muted:#979FAD;
+      --faint:#727B8A;
+      --border:#2B313A;
+      --border-strong:#3A424E;
+      --accent:#E08A4F;
+      --accent-soft:#3A2A1D;
+      --ok:#54C193;
+      --ok-soft:#1B3229;
+      --warn:#DFA83C;
+      --warn-soft:#33280F;
+      --block:#E97B70;
+      --block-soft:#38211F;
+      --cool:#8FB0CC;
+      --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 28px -18px rgba(0,0,0,.8);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#14171C;
+    --surface:#1B1F26;
+    --surface-2:#222731;
+    --ink:#E5E8EE;
+    --ink-2:#C6CCD7;
+    --muted:#979FAD;
+    --faint:#727B8A;
+    --border:#2B313A;
+    --border-strong:#3A424E;
+    --accent:#E08A4F;
+    --accent-soft:#3A2A1D;
+    --ok:#54C193;
+    --ok-soft:#1B3229;
+    --warn:#DFA83C;
+    --warn-soft:#33280F;
+    --block:#E97B70;
+    --block-soft:#38211F;
+    --cool:#8FB0CC;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 28px -18px rgba(0,0,0,.8);
+  }
+
+  *{box-sizing:border-box}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--sans);
+    font-size:15px;
+    line-height:1.75;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1060px;margin:0 auto;padding:40px 22px 88px}
+
+  /* ---- header ---- */
+  header.doc{
+    display:flex;flex-direction:column;gap:18px;
+    padding-bottom:26px;margin-bottom:34px;
+    border-bottom:2px solid var(--ink);
+  }
+  .eyebrow{
+    font-family:var(--mono);font-size:11px;font-weight:700;
+    letter-spacing:.16em;text-transform:uppercase;color:var(--accent);
+  }
+  h1{
+    margin:0;font-size:clamp(28px,4.6vw,40px);font-weight:900;
+    letter-spacing:-.02em;line-height:1.22;text-wrap:balance;
+  }
+  .lede{margin:0;max-width:62ch;color:var(--muted);font-size:15px}
+  .meta{
+    display:grid;gap:1px;background:var(--border);
+    border:1px solid var(--border);border-radius:3px;overflow:hidden;
+    grid-template-columns:repeat(auto-fit,minmax(215px,1fr));
+  }
+  .meta div{background:var(--surface);padding:10px 13px}
+  .meta dt{
+    font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.11em;
+    text-transform:uppercase;color:var(--faint);margin:0 0 3px;
+  }
+  .meta dd{margin:0;font-family:var(--mono);font-size:12.5px;color:var(--ink-2);word-break:break-all}
+
+  /* ---- sections ---- */
+  section{margin:0 0 42px}
+  h2{
+    margin:0 0 4px;font-size:19px;font-weight:900;letter-spacing:-.01em;
+    display:flex;align-items:baseline;gap:11px;
+  }
+  h2::before{
+    content:"";width:20px;height:3px;background:var(--accent);
+    flex:none;transform:translateY(-5px);
+  }
+  .sub{margin:0 0 18px 31px;color:var(--muted);font-size:13.5px;max-width:64ch}
+  h3{
+    margin:26px 0 10px;font-size:13px;font-weight:700;letter-spacing:.07em;
+    text-transform:uppercase;font-family:var(--mono);color:var(--cool);
+  }
+  p{margin:0 0 12px;max-width:66ch}
+  a{color:var(--accent);text-underline-offset:3px}
+  a:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:2px}
+
+  /* ---- tables ---- */
+  .scroll{overflow-x:auto;border:1px solid var(--border);border-radius:3px;background:var(--surface)}
+  table{border-collapse:collapse;width:100%;min-width:520px;font-size:13.5px}
+  th,td{padding:9px 13px;text-align:left;border-bottom:1px solid var(--border);vertical-align:top}
+  thead th{
+    font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--faint);background:var(--surface-2);
+    border-bottom:1px solid var(--border-strong);white-space:nowrap;
+  }
+  tbody tr:last-child td{border-bottom:none}
+  td.num,th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+  td.k{font-weight:700;white-space:nowrap}
+  tfoot td{
+    background:var(--surface-2);font-weight:700;
+    border-top:1px solid var(--border-strong);
+  }
+
+  /* ---- chips ---- */
+  .chip{
+    display:inline-block;font-family:var(--mono);font-size:10px;font-weight:700;
+    letter-spacing:.08em;text-transform:uppercase;padding:2px 7px;border-radius:2px;
+    white-space:nowrap;
+  }
+  .c-ok{background:var(--ok-soft);color:var(--ok)}
+  .c-warn{background:var(--warn-soft);color:var(--warn)}
+  .c-block{background:var(--block-soft);color:var(--block)}
+  .c-acc{background:var(--accent-soft);color:var(--accent)}
+  .unknown{
+    font-family:var(--mono);font-size:11.5px;font-weight:700;color:var(--block);
+    background:var(--block-soft);padding:1px 6px;border-radius:2px;
+  }
+
+  /* ---- decision list ---- */
+  .decisions{display:grid;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:3px;overflow:hidden}
+  .decisions > div{
+    background:var(--surface);padding:12px 15px;
+    display:grid;grid-template-columns:1fr auto;gap:4px 14px;align-items:start;
+  }
+  .decisions .d-t{font-weight:700;font-size:14px}
+  .decisions .d-b{grid-column:1/-1;color:var(--muted);font-size:13px;margin:0}
+
+  /* ---- tasks ---- */
+  ol.tasks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;counter-reset:t}
+  ol.tasks > li{
+    counter-increment:t;position:relative;
+    background:var(--surface);border:1px solid var(--border);border-radius:3px;
+    padding:13px 15px 13px 52px;box-shadow:var(--shadow);
+  }
+  ol.tasks > li::before{
+    content:counter(t,decimal-leading-zero);
+    position:absolute;left:15px;top:13px;
+    font-family:var(--mono);font-size:12px;font-weight:700;color:var(--faint);
+  }
+  li.p1{border-left:3px solid var(--block)}
+  li.p2{border-left:3px solid var(--warn)}
+  li.p3{border-left:3px solid var(--faint)}
+  .t-head{display:flex;flex-wrap:wrap;gap:9px;align-items:baseline;margin-bottom:3px}
+  .t-title{font-weight:700;font-size:14.5px}
+  .t-body{margin:0;color:var(--muted);font-size:13px}
+  .t-dep{
+    margin:7px 0 0;font-family:var(--mono);font-size:11.5px;color:var(--faint);
+    padding-top:7px;border-top:1px dashed var(--border);
+  }
+
+  /* ---- callout ---- */
+  .note{
+    border:1px solid var(--border);border-left:3px solid var(--accent);
+    background:var(--surface);border-radius:3px;padding:14px 16px;margin:0 0 16px;
+  }
+  .note p:last-child{margin-bottom:0}
+  .note strong{color:var(--accent)}
+
+  ul.plain{margin:0;padding-left:1.15em;display:flex;flex-direction:column;gap:6px}
+  ul.plain li{font-size:14px}
+  code{
+    font-family:var(--mono);font-size:.88em;background:var(--surface-2);
+    border:1px solid var(--border);border-radius:2px;padding:1px 5px;
+  }
+  footer{
+    margin-top:52px;padding-top:18px;border-top:1px solid var(--border);
+    font-family:var(--mono);font-size:11.5px;color:var(--faint);
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="doc">
+    <div class="eyebrow">Session Handover / 引き継ぎ資料</div>
+    <h1>デスクトップサーバー構成と価格</h1>
+    <p class="lede">
+      ノートPC（Latitude 5320）で稼働中の FiveM ＋ Claude Code サーバーを、余っている Ryzen 9 7900X で
+      デスクトップに移行する検討。中古中心・低予算が前提。<strong>本セッションでは調査と方針検討のみを行い、
+      ファイル変更・コミットは一切していない。</strong>
+    </p>
+    <dl class="meta">
+      <div><dt>Repository</dt><dd>gain774/Linux — /home/user/Linux</dd></div>
+      <div><dt>Branch (指定・未使用)</dt><dd>claude/desktop-server-build-munf0w</dd></div>
+      <div><dt>Session date</dt><dd>2026-09-02 〜 09-03</dd></div>
+      <div><dt>成果物</dt><dd>調査結果のみ / コード変更なし</dd></div>
+    </dl>
+  </header>
+
+  <!-- 目的 -->
+  <section>
+    <h2>目的</h2>
+    <p class="sub">何をしようとしていたか。</p>
+    <ul class="plain">
+      <li>現行の Latitude 5320（i7-1185G7 / 4C8T）は性能不足。手持ちで余っている <strong>Ryzen 9 7900X</strong> を使ってデスクトップサーバーを組み、そちらへ移行したい。</li>
+      <li>用途は README 記載の通り <strong>FiveM ゲームサーバーの常時稼働</strong> ＋ <strong>外出先から SSH で使える Claude Code 環境</strong>の同居。</li>
+      <li>予算は「中古で安く済ませたい」。具体的な上限額は <span class="unknown">不明</span>。</li>
+      <li>本セッションで扱ったのは、構成候補・概算価格・CPU 選定・同時接続人数の見積もり。</li>
+    </ul>
+  </section>
+
+  <!-- 決定事項 -->
+  <section>
+    <h2>決定事項・技術的結論</h2>
+    <p class="sub">
+      セッション内で根拠を示して結論づけた項目。ただし <span class="chip c-warn">要承認</span> が付いたものは
+      <strong>ユーザーがまだ採否を明言していない</strong>ため、確定ではなく推奨に留まる。
+    </p>
+
+    <div class="decisions">
+      <div>
+        <span class="d-t">グラフィックボードは不要</span><span class="chip c-ok">確定</span>
+        <p class="d-b">7900X は iGPU（RDNA2 2CU）内蔵で BIOS 画面が出る。7800X3D も Radeon Graphics 内蔵。headless 運用のため描画自体が発生しない。GPU が要るのはローカル LLM／画像生成／配信ホスト／大量トランスコードの場合のみ。Claude Code は API 経由なのでローカル CPU・GPU をほぼ使わない。</p>
+      </div>
+      <div>
+        <span class="d-t">メモリは 32GB で十分。64GB は買わない</span><span class="chip c-ok">確定</span>
+        <p class="d-b">FiveM は「足りていれば速度は変わらない」性質。64人規模の RP でも実使用 12〜20GB。32GB → 64GB にしても FiveM は速くならない。現在の DDR5 相場では 64GB 化は純粋な浪費。増設余地のためマザボは DIMM 4本のものが望ましい。</p>
+      </div>
+      <div>
+        <span class="d-t">SSD は 500GB で容量的に問題なし</span><span class="chip c-ok">確定</span>
+        <p class="d-b">Ubuntu Server 約10GB ＋ FiveM 20〜40GB（README 実測値）＋ Node/Docker 10〜20GB＝<strong>合計 40〜70GB</strong>。500GB で 7〜10倍の余裕。ただし円/GB では 1TB の方が有利（+7,000円程度で倍容量）。容量より <strong>TLC・DRAM 搭載品</strong>を選ぶことが重要（24時間ログ書き込みのため）。</p>
+      </div>
+      <div>
+        <span class="d-t">電源は新品を使う</span><span class="chip c-ok">確定</span>
+        <p class="d-b">24時間稼働で経年電源が故障するとマザボ・SSD を巻き添えにする。中古完成品を買う場合も電源だけは新品に交換する前提で +7,000〜10,000円を見込む。</p>
+      </div>
+      <div>
+        <span class="d-t">UPS が新たに必要になる</span><span class="chip c-ok">確定</span>
+        <p class="d-b">README にある通り、ノートは「バッテリーが簡易UPS代わり」だった。デスクトップ化でそれが失われる。CyberPower CP550 クラスで 8,000〜12,000円。</p>
+      </div>
+      <div>
+        <span class="d-t">モニターの買い増しは不要</span><span class="chip c-ok">確定</span>
+        <p class="d-b">画面が必要なのは README の Phase 3（BIOS）と Phase 4（Ubuntu インストール）の2回のみ。以降は SSH。HDMI ケーブル差し替え（0円）か HDMI切替器（約2,000円）で足りる。さらに<strong>デスクトップ移行でノート（Latitude 5320）が空くため、これが SSH 操作端末になる</strong>。これは README の未確認論点「サーバーを操作する端末が未定」の解決策でもある。</p>
+      </div>
+      <div>
+        <span class="d-t">BIOS: AC Power Loss → Power On を設定</span><span class="chip c-ok">確定</span>
+        <p class="d-b">停電復帰で自動起動させる。Latitude での「AC Recovery = Power On」と同じ意図（README Phase 3 相当）。</p>
+      </div>
+      <div>
+        <span class="d-t">CPU は 7800X3D を残す方が用途に合う</span><span class="chip c-warn">要承認</span>
+        <p class="d-b">「7800X3D 搭載の中古機を買い、7900X と入れ替えて片方を売る」という前提での結論。FiveM はシングルスレッド律速でキャッシュが効くため 96MB L3・1CCD の 7800X3D が 10〜25% 有利。7900X の 12コアは Claude Code が API 経由で CPU を使わないためほぼ遊ぶ。24時間の消費電力・発熱・静音も 7800X3D 有利。売却額の差は 1万円前後で決め手にならない。<strong>ただし将来ビルド／大量コンテナ／エンコードを回すなら 7900X が逆転する。</strong></p>
+      </div>
+      <div>
+        <span class="d-t">購入ルートは「中古 AM5 機を買って載せ替え」が最有力</span><span class="chip c-warn">要承認</span>
+        <p class="d-b">中古完成品は内部のメモリ・SSD が高騰前価格で仕入れられているため、パーツ個別購入より有利。特に 7800X3D 搭載中古機なら AM5＋DDR5 構成が確実で、最大の障壁である DDR5 代（約6万円）が本体価格に込みになる。</p>
+      </div>
+      <div>
+        <span class="d-t">7900X を使う場合の設定2点</span><span class="chip c-acc">7900X採用時のみ</span>
+        <p class="d-b">① BIOS で <strong>ECO モード 105W</strong>（FiveM は全コア負荷を掛けないため人数・体感は落ちない。発熱・電気代・電源要件が下がる）。② 2CCD 構成のため CCD 間レイテンシを避けて FiveM を片側に固定する。<code>fivem.service</code> に <code>CPUAffinity=0-11</code> を追加。7800X3D は 1CCD なのでこの設定自体が不要。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 価格 -->
+  <section>
+    <h2>調査で確定した価格（2026年8〜9月 日本相場）</h2>
+    <p class="sub">Web 検索で確認した実勢値。出典は末尾。</p>
+
+    <div class="note">
+      <p><strong>重要な訂正：</strong>セッション初期に提示した見積もり（DDR5 32GB を 7,000〜9,000円、64GB を 18,000〜23,000円 等）は<strong>大幅に誤っていた</strong>。ユーザーの指摘を受けて調査し、下表に訂正済み。<strong>初期の数値は使用しないこと。</strong></p>
+      <p>背景：DDR5 は 2025年7月比で平均 4.4倍（2026年1月時点）に高騰。原因は AI データセンター需要・HBM への生産シフト・NAND 減産・円安。<strong>2027年後半までは高止まりの見通し</strong>で、2026年内の下落は期待できない。</p>
+    </div>
+
+    <h3>メモリ・ストレージ（高騰対象）</h3>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>品目</th><th class="num">相場</th><th>備考</th></tr></thead>
+        <tbody>
+          <tr><td class="k">DDR5 32GB（16GB×2）</td><td class="num">58,000〜61,000円</td><td>2025年後半は 28,000円前後だった</td></tr>
+          <tr><td class="k">DDR5 64GB（32GB×2）</td><td class="num">80,000〜112,000円</td><td>今回は購入対象外と結論</td></tr>
+          <tr><td class="k">NVMe SSD 2TB</td><td class="num">47,000〜55,000円</td><td>手持ちの SN7100 2TB がこの価値</td></tr>
+          <tr><td class="k">NVMe SSD 1TB</td><td class="num">25,000〜37,000円</td><td>最安 24,980円</td></tr>
+          <tr><td class="k">NVMe SSD 500GB</td><td class="num">15,000〜20,000円</td><td><span class="chip c-warn">推定値</span> 500GB の直接の相場データは取得できず、1TB 価格からの推定</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>CPU（売買判断用）</h3>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>品目</th><th class="num">価格</th><th>備考</th></tr></thead>
+        <tbody>
+          <tr><td class="k">7800X3D 買取（店舗）</td><td class="num">28,000〜43,000円</td><td>パソコン工房 上限43,000 / ツクモ 32,000 / ルデヤ 34,200 / じゃんぱら 〜28,000</td></tr>
+          <tr><td class="k">7800X3D 新品</td><td class="num">49,800円〜</td><td>—</td></tr>
+          <tr><td class="k">7900X 中古出品</td><td class="num">21,999〜49,874円</td><td>—</td></tr>
+          <tr><td class="k">7900X 新品</td><td class="num">57,980円</td><td>—</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="margin-top:10px;font-size:13px;color:var(--muted)">
+      ヤフオクの「平均落札価格」（7900X 69,594円 / 7800X3D 142,216円）は<strong>PC本体ごとの出品が混入しており信頼できない</strong>。買取店の実額を基準にすること。
+    </p>
+
+    <h3>その他パーツ（高騰の影響が小さい）</h3>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>品目</th><th class="num">相場</th></tr></thead>
+        <tbody>
+          <tr><td class="k">マザーボード 中古 A620M / B650M</td><td class="num">10,000〜16,000円</td></tr>
+          <tr><td class="k">電源 650W 80+ Bronze 新品</td><td class="num">7,000〜10,000円</td></tr>
+          <tr><td class="k">CPUクーラー（AK400 級）</td><td class="num">2,000〜5,000円</td></tr>
+          <tr><td class="k">ケース microATX 中古</td><td class="num">2,000〜4,000円</td></tr>
+          <tr><td class="k">UPS（CP550 クラス）</td><td class="num">8,000〜12,000円</td></tr>
+          <tr><td class="k">モニター 24〜27インチ（参考・高騰対象外）</td><td class="num">15,000〜25,000円</td></tr>
+          <tr><td class="k">中古ゲーミングPC ボリュームゾーン</td><td class="num">50,000〜80,000円</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>構成案の合計（最終版・7900X 前提 / SSD 500GB 新規購入）</h3>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>パーツ</th><th class="num">A：パーツ組み</th><th class="num">B：メインPCから32GB流用</th></tr></thead>
+        <tbody>
+          <tr><td class="k">マザーボード（中古）</td><td class="num">10,000〜16,000</td><td class="num">10,000〜16,000</td></tr>
+          <tr><td class="k">メモリ 32GB</td><td class="num">58,000〜61,000</td><td class="num">0（流用）</td></tr>
+          <tr><td class="k">SSD 500GB</td><td class="num">15,000〜20,000</td><td class="num">15,000〜20,000</td></tr>
+          <tr><td class="k">電源 650W（新品）</td><td class="num">7,000〜10,000</td><td class="num">7,000〜10,000</td></tr>
+          <tr><td class="k">CPUクーラー</td><td class="num">2,000〜5,000</td><td class="num">2,000〜5,000</td></tr>
+          <tr><td class="k">ケース（中古）</td><td class="num">2,000〜4,000</td><td class="num">2,000〜4,000</td></tr>
+          <tr><td class="k">モニター</td><td class="num">0</td><td class="num">0</td></tr>
+        </tbody>
+        <tfoot>
+          <tr><td>サーバー計（UPS 別）</td><td class="num">94,000〜116,000</td><td class="num">36,000〜55,000</td></tr>
+          <tr><td>メインPC 64GB化の追加費用</td><td class="num">—</td><td class="num">+80,000〜112,000</td></tr>
+        </tfoot>
+      </table>
+    </div>
+    <p style="margin-top:10px;font-size:13px;color:var(--muted)">
+      B は「安く済む方法」ではない。総支出は B の方が大きく、実質は「差額 2〜5万円でメインPCを64GB化するついでにサーバーのメモリ代が浮く」という構図。メインPCの64GB化を元々望まないなら A が安い。<br>
+      なお 4枚挿し（既存32GB＋増設32GB）は AM5 では速度が 5600→4000前後に落ち、異なるキットの混在は POST しないこともあるため非推奨。64GBキットへ丸ごと入れ替えるのが正しい手順。
+    </p>
+  </section>
+
+  <!-- 性能見積もり -->
+  <section>
+    <h2>性能見積もり（同時接続人数）</h2>
+    <p class="sub">7900X 前提で算出。7800X3D は FiveM のサーバースレッドで 10〜25% 上回る想定のため、下表以上になる。</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>サーバーの中身</th><th class="num">7900X</th><th class="num">現行ノート（i7-1185G7）</th></tr></thead>
+        <tbody>
+          <tr><td class="k">バニラ／軽量（cfx-server-data＋少数リソース）</td><td class="num">128人以上</td><td class="num">20〜32人</td></tr>
+          <tr><td class="k">一般的な RP（ESX / QBCore＋150前後のリソース）</td><td class="num">64人快適・100人まで実用</td><td class="num">8〜16人</td></tr>
+          <tr><td class="k">重量級 RP（大量 MLO・カスタムスクリプト）</td><td class="num">48〜64人</td><td class="num">実質不可</td></tr>
+          <tr><td class="k">友人内カジュアル</td><td class="num">回線側で決まる</td><td class="num">16人</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note" style="margin-top:16px">
+      <p><strong>README の「目安16人」はノート側の制約による数値</strong>であり、デスクトップ移行後は適用されない。README を更新する際はこの記述の差し替えが必要。</p>
+    </div>
+    <h3>人数を制限する要因（詰まる順）</h3>
+    <ul class="plain">
+      <li><strong>① スクリプトの質</strong> — 出来の悪いリソース1つで Server Thread が跳ねる。CPU を強化しても解決しない。指標は txAdmin の <strong>Server Thread 5〜6ms 以下</strong>。</li>
+      <li><strong>② 回線の上り帯域</strong> — 32人で 5〜10Mbps、64人で 15〜25Mbps を常時消費。<span class="unknown">現在の回線の上り速度は不明</span>。</li>
+      <li><strong>③ RAM</strong> — 64人の重量級 RP で 12〜20GB。32GB で足りる。</li>
+      <li><strong>④ CPU</strong> — 上記をクリアして初めて効いてくる。</li>
+      <li><strong>設定要件</strong> — 32人超で <strong>OneSync（Infinity）が必須</strong>。Cfx.re の無料ライセンスキー（README Phase 9 で取得するもの）で利用可。</li>
+    </ul>
+  </section>
+
+  <!-- 完了 -->
+  <section>
+    <h2>完了したこと</h2>
+    <p class="sub">本セッションの成果。すべて調査・検討であり、リポジトリへの変更は行っていない。</p>
+    <ul class="plain">
+      <li>README.md を読み、既存のサーバー計画・ハード構成・進捗（Phase 0〜1 完了、Phase 2 以降未着手）を把握。</li>
+      <li>7900X ベースのデスクトップ構成案と概算価格を作成（初版）。</li>
+      <li>FiveM の同時接続人数見積もりを、サーバー内容別に算出。</li>
+      <li><strong>価格の再調査と訂正</strong>。DDR5・SSD の高騰を反映し、初版の誤った数値を全面的に修正。</li>
+      <li>SSD 容量（500GB で足りるか）を README の実測値から検証。</li>
+      <li>グラボの要否、モニター買い増しの要否を用途別に整理。</li>
+      <li>中古完成品ルート（A/B/C）の比較と、中古機購入時の確認項目の洗い出し。</li>
+      <li>7900X と 7800X3D のワークロード別比較、および売却相場の調査。</li>
+    </ul>
+  </section>
+
+  <!-- 残タスク -->
+  <section>
+    <h2>未完了の残タスク</h2>
+    <p class="sub">
+      優先度：<span class="chip c-block">P1</span> 先行必須（後続がブロックされる）／
+      <span class="chip c-warn">P2</span> 購入前に必要／
+      <span class="chip c-acc">P3</span> 記録・整備。
+    </p>
+    <ol class="tasks">
+      <li class="p1">
+        <div class="t-head"><span class="t-title">メインPC のメモリ規格が DDR5 か DDR4 かを確認する</span><span class="chip c-block">P1</span></div>
+        <p class="t-body">DDR4 なら AM5 に物理的に挿さらないため「メインPCを64GB化して32GBを流用する」案（Bプラン）が丸ごと成立しない。Windows なら タスクマネージャー → パフォーマンス → メモリ の右上に規格が表示される。</p>
+        <p class="t-dep">依存：なし／これがタスク2の前提</p>
+      </li>
+      <li class="p1">
+        <div class="t-head"><span class="t-title">どちらの CPU を残すか決定する（7900X or 7800X3D）</span><span class="chip c-block">P1</span></div>
+        <p class="t-body">セッションの推奨は 7800X3D を残す。ただし「サーバーを FiveM 以外の重い並列処理にも使うか」というユーザーの意向次第で逆転する。この判断が構成全体（マザボ選定・冷却・電源容量・ECO設定の要否）を左右する。</p>
+        <p class="t-dep">依存：ユーザーの利用計画の申告待ち</p>
+      </li>
+      <li class="p1">
+        <div class="t-head"><span class="t-title">購入ルートを確定する</span><span class="chip c-block">P1</span></div>
+        <p class="t-body">候補は4つ。A：パーツ個別に組む（94,000〜116,000円）／B：メインPC 64GB化＋32GB流用（サーバー側 36,000〜55,000円、総額は増）／C：中古 AM5 機を買って 7900X に載せ替え、外した CPU を売却／D：7800X3D 搭載中古機を買い、7900X を売却。推奨は C または D。</p>
+        <p class="t-dep">依存：タスク1（メモリ規格）とタスク2（CPU選定）の両方</p>
+      </li>
+      <li class="p2">
+        <div class="t-head"><span class="t-title">回線の上り速度を実測する</span><span class="chip c-warn">P2</span></div>
+        <p class="t-body">同時接続人数の実質的な上限を決める要素。32人で 5〜10Mbps、64人で 15〜25Mbps が必要。光回線なら通常問題ないが未測定。</p>
+        <p class="t-dep">依存：なし（CPU 選定と並行して実施可能）</p>
+      </li>
+      <li class="p2">
+        <div class="t-head"><span class="t-title">CGNAT かどうかを確認する</span><span class="chip c-warn">P2</span></div>
+        <p class="t-body">README Phase 10 の論点。グローバルIPが無いとポート 30120 の開放ができず、友人への公開ができない。代替は playit.gg 等のトンネル、または友人も WARP/Tailscale に参加する方式。ハード構成とは独立だが、公開可否に直結する。</p>
+        <p class="t-dep">依存：なし</p>
+      </li>
+      <li class="p2">
+        <div class="t-head"><span class="t-title">中古機を買う場合の現物確認3点</span><span class="chip c-warn">P2</span></div>
+        <p class="t-body">① メモリ容量（16GB か 32GB か）② SSD の容量と健康状態（S.M.A.R.T. の総書込量）③ 電源の素性と使用年数。加えて中古マザボは AM5 ソケットのピン曲がりを写真で確認。Dell/HP/Lenovo の企業向け中古は電源・マザボが独自規格で CPU 載せ替えができないことが多く、載せ替え前提なら自作系の中古機に限る。</p>
+        <p class="t-dep">依存：タスク3（購入ルート確定）</p>
+      </li>
+      <li class="p3">
+        <div class="t-head"><span class="t-title">README.md にデスクトップ移行の検討結果を追記する</span><span class="chip c-acc">P3</span></div>
+        <p class="t-body">「Phase 12 — デスクトップ移行」として、訂正後の相場・構成案・CPU選定・モニター不要の結論を記録する。あわせて既存記述の更新が必要：「評価」節の <strong>目安16人</strong> はノート前提の数値であること、「決定事項」の <strong>2TB を新PCに転用</strong> がサーバーには別途 500GB を用意する方針に変わったこと。<strong>セッション中に3回提案したが、ユーザーからの承認は得られていない。</strong></p>
+        <p class="t-dep">依存：タスク2・3の確定後に書くのが望ましい／ブランチ claude/desktop-server-build-munf0w にコミットする想定</p>
+      </li>
+      <li class="p3">
+        <div class="t-head"><span class="t-title">README Phase 2 以降の実作業</span><span class="chip c-acc">保留</span></div>
+        <p class="t-body">SSD 換装・BIOS 設定・Ubuntu インストール・Cloudflare・FiveM 構築。README 上は未着手のまま。デスクトップ移行が決まれば、Latitude 向けの Phase 2〜4 は内容ごと書き換えになる可能性が高い。</p>
+        <p class="t-dep">依存：ハード構成の確定（タスク3）</p>
+      </li>
+    </ol>
+  </section>
+
+  <!-- ブロッカー -->
+  <section>
+    <h2>ブロッカー・未決事項</h2>
+    <p class="sub">すべてユーザーの判断・確認待ち。セッション側で解決できるものはない。</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>項目</th><th>状態</th><th>誰の判断待ちか</th></tr></thead>
+        <tbody>
+          <tr><td class="k">残す CPU（7900X / 7800X3D）</td><td>推奨は 7800X3D。未決</td><td>ユーザー</td></tr>
+          <tr><td class="k">購入ルート（A/B/C/D）</td><td>推奨は C または D。未決</td><td>ユーザー</td></tr>
+          <tr><td class="k">メインPC のメモリ規格</td><td><span class="unknown">不明</span> — 未確認</td><td>ユーザーの実機確認</td></tr>
+          <tr><td class="k">メインPC のその他スペック</td><td><span class="unknown">不明</span> — CPU・マザボ等は未申告</td><td>ユーザー</td></tr>
+          <tr><td class="k">予算の上限</td><td><span class="unknown">不明</span> — 「安く済ませたい」のみ</td><td>ユーザー</td></tr>
+          <tr><td class="k">回線種別・上り速度</td><td><span class="unknown">不明</span> — 未測定</td><td>ユーザーの実測</td></tr>
+          <tr><td class="k">CGNAT の有無</td><td><span class="unknown">不明</span> — README でも未確認のまま</td><td>ユーザーの確認</td></tr>
+          <tr><td class="k">2枚目のモニター購入</td><td>サーバー用途では不要と結論。個人的な希望としては未決</td><td>ユーザー</td></tr>
+          <tr><td class="k">README への追記の可否</td><td>3回提案したが未回答</td><td>ユーザー</td></tr>
+          <tr><td class="k">サーバーの将来用途（ビルド／大量コンテナ等）</td><td><span class="unknown">不明</span> — CPU 選定を左右する</td><td>ユーザー</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 前提 -->
+  <section>
+    <h2>前提・環境情報</h2>
+
+    <h3>現行サーバー（README より・Windows 上で実測確認済み）</h3>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>項目</th><th>内容</th></tr></thead>
+        <tbody>
+          <tr><td class="k">機種</td><td>Dell Latitude 5320</td></tr>
+          <tr><td class="k">CPU</td><td>Intel Core i7-1185G7（11th Gen / 4コア8スレッド）</td></tr>
+          <tr><td class="k">RAM</td><td>16GB</td></tr>
+          <tr><td class="k">SSD</td><td>WD_BLACK SN7100 2TB NVMe（換装で取り外し予定）／元の 256GB に戻して Ubuntu を入れる計画</td></tr>
+          <tr><td class="k">OS</td><td>Ubuntu Server 24.04 LTS（GUI なし、headless）</td></tr>
+          <tr><td class="k">用途</td><td>FiveM 常時稼働 ＋ 遠隔 Claude Code 環境</td></tr>
+          <tr><td class="k">遠隔アクセス</td><td>Cloudflare One（WARP + Tunnel / Zero Trust 無料プラン）</td></tr>
+          <tr><td class="k">ゲームポート</td><td>30120 TCP/UDP をルーターで転送（Cloudflare 無料プランは任意 UDP を中継しないため）</td></tr>
+          <tr><td class="k">進捗</td><td>Phase 0（方針決定）・Phase 1（インストーラUSB作成）完了。Phase 2 以降は未着手</td></tr>
+          <tr><td class="k">バックアップ方針</td><td>取らない（本人決定・確認済みのため蒸し返さない）</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>移行先の前提</h3>
+    <ul class="plain">
+      <li>使用予定 CPU：<strong>Ryzen 9 7900X</strong>（手持ち・取得費用 0円）。12C/24T、最大 5.6GHz、L3 64MB（32MB×2 CCD）、TDP 170W / PPT 230W、iGPU あり。</li>
+      <li>比較対象：<strong>Ryzen 7 7800X3D</strong>。8C/16T、最大 5.0GHz、L3 96MB（1CCD）、TDP 120W / PPT 162W、iGPU あり。</li>
+      <li>プラットフォームは <strong>AM5 / DDR5 必須</strong>（DDR4 は不可）。</li>
+      <li>SSD の方針変更：README では「2TB を新しい PC に転用」としていたが、<strong>その 2TB は別用途に回し、サーバーには別途 500GB を用意する</strong>方針にユーザーが変更。</li>
+      <li>電気代前提：<strong>31円/kWh</strong>。7900X はアイドル込み平均 70〜90W で<strong>月 1,600〜2,000円</strong>の増加見込み（ノートは約15W）。7800X3D なら 1CCD 分アイドルが低く、平均で 15〜25W（月 130〜190円）安い。</li>
+      <li>本セッションでのコード変更・コミット・PR：<strong>なし</strong>。指定ブランチ <code>claude/desktop-server-build-munf0w</code> は未使用。</li>
+    </ul>
+  </section>
+
+  <!-- 参考 -->
+  <section>
+    <h2>参考リンク・ファイルパス</h2>
+
+    <h3>リポジトリ内</h3>
+    <ul class="plain">
+      <li><code>/home/user/Linux/README.md</code> — サーバー化プロジェクトの全記録・全12フェーズの手順書（本セッションの唯一の参照ファイル）</li>
+      <li><code>/home/user/Linux/runbook.html</code> — 存在は確認したが<strong>本セッションでは未読</strong></li>
+    </ul>
+
+    <h3>README 記載の外部リンク</h3>
+    <ul class="plain">
+      <li>対話手順書アーティファクト：<a href="https://claude.ai/code/artifact/36c9415f-10a6-41ec-8fe9-a86b82571d03">claude.ai/code/artifact/36c9415f-10a6-41ec-8fe9-a86b82571d03</a></li>
+      <li>Cfx.re ポータル（FiveM ライセンスキー）：<a href="https://portal.cfx.re/">portal.cfx.re</a></li>
+    </ul>
+
+    <h3>価格調査の出典</h3>
+    <ul class="plain">
+      <li><a href="https://gaming-st.com/gamingpc/664/">DDR5メモリ価格【2026年8月最新】32GB・64GBの今の値段と価格推移</a></li>
+      <li><a href="https://www.nichepcgamer.com/archives/ddr5-memory-module-prices-have-surged-by-an-average-of-4-4x.html">DDR5メモリ、平均4.4倍に高騰（2025年7月→2026年1月）</a></li>
+      <li><a href="https://gaming-st.com/news/nvme-ssd-price-surge-japan-2026-buying-guide/">SSD高騰はいつまで続く？NVMe 1TB約2.5万円・2TB約4.7万円の実勢価格</a></li>
+      <li><a href="https://pc.watch.impress.co.jp/docs/topic/feature/2082553.html">メモリ 16GBペアが11万円超え!? 2026年1月、パソコン市場を襲う異変</a></li>
+      <li><a href="https://www.pc-koubou.jp/kaitori/re/item_386871_id_260.html">Ryzen7 7800X3D BOX の買取価格（パソコン工房）</a></li>
+      <li><a href="https://kaitori.tsukumo.co.jp/used_products/">買取価格表（ツクモ買取センター）</a></li>
+      <li><a href="https://price-rank.com/p/96170">Ryzen 9 7900X BOX 新品・中古 価格比較（プライスランク）</a></li>
+      <li><a href="https://gamingpcs.jp/choice/guide/old/">おすすめの中古ゲーミングPC特集【2026年】</a></li>
+      <li><a href="https://gaming-st.com/gamingpc/701/">PCは今が買い時？待つべき？【2026年7月最新】パーツ別価格動向</a></li>
+      <li><a href="https://kakaku.com/pc/ssd/ranking_0537/">価格.com — 2026年9月 SSD 人気売れ筋ランキング</a></li>
+    </ul>
+  </section>
+
+  <footer>
+    引き継ぎ資料 — セッション記録に基づく。推測は含めず、未確認の項目は「不明」と明記した。<br>
+    価格はすべて 2026年8〜9月時点の日本市場の相場であり、変動する。
+  </footer>
+
+</div>
