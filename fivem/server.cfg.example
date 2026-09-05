@@ -19,7 +19,10 @@ ensure mapmanager
 ensure chat
 ensure spawnmanager
 ensure sessionmanager
-ensure basic-gamemode
+## basic-gamemode は入れない。
+## setAutoSpawn(true) と forceRespawn() を呼ぶため gain_spawn とスポーン制御を
+## 奪い合い、マップ既定の spawnpoint（スケーター等）に一度湧いてから引っ張られる。
+## 既定マップ（fivem-map-skater / fivem-map-hipster）も同じ理由で使わない。
 ensure hardcap
 
 ## --- 依存（無料 OSS。server-data/resources/ に配置する） ---
@@ -29,6 +32,7 @@ ensure oxmysql
 
 ## --- gain framework ---
 ensure gain_core
+ensure gain_spawn
 
 ensure gain_admin
 ensure gain_anticheat

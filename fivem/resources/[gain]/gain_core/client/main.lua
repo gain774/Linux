@@ -26,29 +26,9 @@ RegisterNetEvent('gain_core:notify', function(message, kind)
     })
 end)
 
-RegisterNetEvent('gain_core:spawn', function(pos)
-    local ped = PlayerPedId()
-
-    DoScreenFadeOut(0)
-    FreezeEntityPosition(ped, true)
-    SetEntityCoordsNoOffset(ped, pos.x + 0.0, pos.y + 0.0, pos.z + 0.0, false, false, false)
-    SetEntityHeading(ped, pos.heading + 0.0)
-
-    RequestCollisionAtCoord(pos.x + 0.0, pos.y + 0.0, pos.z + 0.0)
-    local timeout = GetGameTimer() + 10000
-    while not HasCollisionLoadedAroundEntity(ped) and GetGameTimer() < timeout do
-        Wait(50)
-    end
-
-    FreezeEntityPosition(ped, false)
-    SetEntityVisible(ped, true, false)
-    SetPlayerInvincible(PlayerId(), false)
-    ClearPedTasksImmediately(ped)
-
-    ShutdownLoadingScreen()
-    ShutdownLoadingScreenNui()
-    DoScreenFadeIn(1000)
-end)
+-- スポーンの実処理は gain_spawn が持つ。
+-- コアの責務は「キャラクターを読み込んで位置を渡す」ところまでで、
+-- gain_core:spawn はリソース間のイベント契約としてサーバー側に残っている。
 
 -- セッション確立後にサーバーへ読み込みを要求する。
 CreateThread(function()
@@ -56,13 +36,22 @@ CreateThread(function()
         Wait(100)
     end
 
-    -- 既定のランダムスポーンを止め、gain_core の位置復元に任せる
-    pcall(function()
-        exports.spawnmanager:setAutoSpawn(false)
-    end)
+    -- データが届くまで要求を繰り返す。固定の待ち時間に依存しない。
+    -- サーバー側は 10 秒あたり 3 回までに制限しているので、間隔をそれに合わせる。
+    local attempts = 0
+    while not isLoaded and attempts < 5 do
+        TriggerServerEvent('gain_core:requestLoad')
+        attempts = attempts + 1
 
-    Wait(500)
-    TriggerServerEvent('gain_core:requestLoad')
+        local deadline = GetGameTimer() + 4000
+        while not isLoaded and GetGameTimer() < deadline do
+            Wait(100)
+        end
+    end
+
+    if not isLoaded then
+        print('[gain_core] キャラクターの読み込みに失敗しました。サーバーのログを確認してください。')
+    end
 end)
 
 -- 位置を定期送信（切断時の復帰位置に使う）
