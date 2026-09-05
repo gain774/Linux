@@ -8,3 +8,6 @@ secrets.cfg
 # 検証中に出る一時ファイル
 *.log
 cache/
+
+# 生成物（genkit.py / genplan.py の出力）
+.build/
