@@ -110,6 +110,16 @@ mariadb -u gain -pgainlocal gain -e \
 mariadb -u gain -pgainlocal gain < fivem/sql/migrations/001_ledger.sql
 ```
 
+## 建物を設計するとき
+
+**`building-design` スキルを使う。** 間取りを頼まれたら、いきなり図面を描かず要件を聞き出す。
+グリッドを機械的に分割して部屋名を割り振ったものは間取りではない。
+スキルに世界の建築類型・寸法基準・作図規約が入っている。
+
+設計した案は `plan-review` エージェントに監査させる。設計者本人には自分の欠陥が見えない。
+
+図面と部品は `fivem/tools/` の `genplan.py`（図面一式）と `genkit.py`（.obj 部品）で生成する。
+
 ## 効率よく進めるために
 
 - **コード全体を横断して調べるときは `Explore` エージェント**を使う。3,600行あり、
