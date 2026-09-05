@@ -12,6 +12,23 @@ model: opus
 ## 見る順序
 
 ### 1. 動線
+
+**まず計算する。目で追わない。**
+
+```bash
+cd fivem/tools && python3 -c "
+import sys; sys.path.insert(0,'.')
+import house_a
+from plan_model import connectivity
+c = connectivity(house_a.PLAN)
+print('到達不能:', c['unreachable'])
+print('通り抜け:', c['pass_through'])
+"
+```
+
+`unreachable` が空でないなら即座に失格。`pass_through` に廊下・ホール・土間以外が
+出ていたら、その室は通り抜けにされている。
+
 - 玄関から各室へ、**他室を通らずに**到達できるか
 - 廊下・ホールがあるか。無い場合、それが意図的な類型（田の字型、shotgun house）か、単なる欠落か
 - 行き止まりの部屋、通り抜けでしか行けない部屋が無いか

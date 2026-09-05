@@ -118,3 +118,90 @@ class Plan:
             '延床': f'{area:.1f} m²',
             'プロップ合計': wall_runs + 2,
         }
+
+
+# ---------------------------------------------------------------- 連結の検査
+def _inside(poly, x, y):
+    """点が多角形の内側か（レイキャスト）。"""
+    n, ins = len(poly), False
+    for i in range(n):
+        x1, y1 = poly[i]
+        x2, y2 = poly[(i + 1) % n]
+        if (y1 > y) != (y2 > y):
+            xi = x1 + (y - y1) / (y2 - y1) * (x2 - x1)
+            if x < xi:
+                ins = not ins
+    return ins
+
+
+def _room_at(plan, x, y):
+    for r in plan.rooms:
+        if _inside(r.poly, x, y):
+            return r.name
+    return None
+
+
+def connectivity(plan, entry_from_outside=None):
+    """開口がどの室とどの室を繋いでいるかを求め、玄関から辿れない室を洗い出す。
+
+    「どの部屋も他室を通らずに到達できる」は口で言っても意味がない。計算する。
+    """
+    edges = []
+    outside = []
+
+    for o in plan.openings:
+        if o.kind == 'window':
+            continue
+        i = o.wall
+        ux, uy = plan.wall_dir(i)
+        nx, ny = -uy, ux
+        cx, cy = plan.point_on_wall(i, o.at)
+        d = plan.thickness / 2 + 0.35
+
+        a = _room_at(plan, cx + nx * d, cy + ny * d)
+        b = _room_at(plan, cx - nx * d, cy - ny * d)
+
+        if a and b:
+            edges.append((a, b, o))
+        elif a or b:
+            outside.append(((a or b), o))     # 外部に出る開口＝玄関など
+
+    # 到達判定
+    start = entry_from_outside or (outside[0][0] if outside else None)
+    reach, stack = set(), [start] if start else []
+    while stack:
+        cur = stack.pop()
+        if cur in reach:
+            continue
+        reach.add(cur)
+        for a, b, _ in edges:
+            if a == cur and b not in reach:
+                stack.append(b)
+            elif b == cur and a not in reach:
+                stack.append(a)
+
+    names = [r.name for r in plan.rooms]
+    unreachable = [n for n in names if n not in reach]
+
+    # 通り抜けでしか行けない室を探す。ある室を封鎖したとき到達できなくなる室
+    pass_through = {}
+    for block in names:
+        if block == start:
+            continue
+        r2, st2 = set(), [start] if start else []
+        while st2:
+            cur = st2.pop()
+            if cur in r2 or cur == block:
+                continue
+            r2.add(cur)
+            for a, b, _ in edges:
+                if a == cur and b not in r2 and b != block:
+                    st2.append(b)
+                elif b == cur and a not in r2 and a != block:
+                    st2.append(a)
+        lost = [n for n in names if n not in r2 and n != block and n not in unreachable]
+        if lost:
+            pass_through[block] = lost
+
+    return dict(entry=start, edges=edges, outside=outside,
+                unreachable=unreachable, pass_through=pass_through)
