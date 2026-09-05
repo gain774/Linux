@@ -11,3 +11,7 @@ cache/
 
 # 生成物（genkit.py / genplan.py の出力）
 .build/
+
+# Python の生成物
+__pycache__/
+*.pyc
