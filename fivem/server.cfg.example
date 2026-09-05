@@ -8,6 +8,12 @@ sv_maxclients 16
 sv_hostname "gain server"
 sv_licenseKey "ここに https://portal.cfx.re/ で発行したキー"
 
+## sv_lan は 0 のままにすること（既定値）。
+## sv_lan 1 にするとクライアントが Cfx.re で認証されず license: 識別子が付かないため、
+## gain_core が接続を拒否する（server/player.lua の getLicense が nil を返す）。
+## ローカル検証でマスターリストに出したくない場合は sv_lan ではなく sv_master1 "" を使う。
+sv_lan 0
+
 ## --- 標準リソース（cfx-server-data 同梱） ---
 ensure mapmanager
 ensure chat
@@ -29,5 +35,15 @@ ensure gain_anticheat
 ensure gain_jobs
 ensure gain_banking
 
-## 管理者の license は gain_core/shared/config.lua の Config.Owners に書く。
-## 自分の license は接続後にサーバーコンソールで確認できる。
+
+## --- 管理者（owner）の指定 ---
+## license は secrets.cfg 側に書く。gain_core/shared/config.lua の Config.Owners は
+## shared_scripts に含まれており、そこへ書くと全クライアントへ配信されてしまう。
+## 自分の license は接続後に /gwhoami でサーバーコンソールに出る。
+##   secrets.cfg:  set gain_owners "license:xxxx,license:yyyy"
+
+## --- 検証用リソース ---
+## gain_test は検証機だけで有効にする。ensure しただけでは走らず、
+## convar が立っていなければ自分を停止する。本番の server.cfg には書かないこと。
+##   setr gain_test_enabled 1
+##   ensure gain_test

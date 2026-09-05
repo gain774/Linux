@@ -59,11 +59,15 @@ CREATE TABLE IF NOT EXISTS `gain_logs` (
 CREATE TABLE IF NOT EXISTS `gain_transactions` (
     `id`            BIGINT       NOT NULL AUTO_INCREMENT,
     `citizenid`     VARCHAR(16)  NOT NULL,
+    `account`       VARCHAR(8)   NOT NULL DEFAULT '',
     `kind`          VARCHAR(16)  NOT NULL,
     `amount`        BIGINT       NOT NULL DEFAULT 0,
+    `delta`         BIGINT       NOT NULL DEFAULT 0,
+    `balance`       BIGINT       NOT NULL DEFAULT 0,
     `counterparty`  VARCHAR(16)  NOT NULL DEFAULT '',
     `reason`        VARCHAR(128) NOT NULL DEFAULT '',
     `created_at`    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
-    KEY `idx_transactions_citizen` (`citizenid`, `id`)
+    KEY `idx_transactions_citizen` (`citizenid`, `id`),
+    KEY `idx_transactions_recon` (`citizenid`, `account`, `id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

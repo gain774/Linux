@@ -318,6 +318,9 @@ sudo ufw allow from 192.168.0.0/16 to any port 40120   # txAdmin は LAN のみ
 このリポジトリ内の `fivem/` に自作している。導入手順・API・進捗は
 [`fivem/docs/DEV.md`](fivem/docs/DEV.md) を参照。
 
+新しいリソースを作るときの方針は [`fivem/docs/DESIGN-PROCESS.md`](fivem/docs/DESIGN-PROCESS.md)
+にまとめてある。既存実装があるならまず調べて真似る、無いなら1から作る。
+
 ```
 fivem/
   resources/[gain]/gain_core   # プレイヤー・所持金・権限・ESX/QBCore 互換

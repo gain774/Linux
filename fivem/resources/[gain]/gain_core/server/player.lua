@@ -159,7 +159,7 @@ AddEventHandler('playerConnecting', function(name, _, deferrals)
 
     local license = getLicense(src)
     if not license then
-        deferrals.done('license 識別子を取得できませんでした。FiveM を再起動してください。')
+        deferrals.done(_L('no_license'))
         return
     end
 
@@ -185,7 +185,7 @@ RegisterSafeEvent('gain_core:requestLoad', { rate = { max = 3, per = 10000 } }, 
 
     local license = getLicense(src)
     if not license then
-        DropPlayer(src, 'license 識別子を取得できませんでした。')
+        DropPlayer(src, _L('no_license'))
         return
     end
 

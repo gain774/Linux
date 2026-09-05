@@ -24,4 +24,7 @@ Locales['ja'] = {
     -- 汎用
     ['player_not_found']    = '対象のプレイヤーが見つかりません。',
     ['saved']               = 'データを保存しました。',
+
+    -- 接続
+    ['no_license']          = 'license 識別子を取得できませんでした。FiveM を再起動してください。',
 }
