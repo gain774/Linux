@@ -38,7 +38,8 @@ ensure gain_admin
 ensure gain_anticheat
 ensure gain_jobs
 ensure gain_banking
-ensure gain_build
+## gain_build は棚上げ中
+# ensure gain_build
 
 
 ## --- 管理者（owner）の指定 ---
