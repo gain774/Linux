@@ -18,10 +18,14 @@ server_scripts {
     'server/log.lua',
     'server/safe_event.lua',
     'server/permission.lua',
+    'server/owners.lua',
+    'server/ledger.lua',
     'server/money.lua',
     'server/player.lua',
+    'server/offline.lua',
     'server/api.lua',
     'server/compat.lua',
+    'server/verify.lua',
 }
 
 client_scripts {

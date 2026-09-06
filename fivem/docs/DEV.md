@@ -12,7 +12,9 @@ FiveM 用の自作フレームワーク。有料スクリプトを買わずに�
 | `gain_admin` | 管理メニュー（キック / BAN / ワープ等） | M2 実装済み |
 | `gain_anticheat` | サーバー側検知と段階的処分 | M3 実装済み |
 | `gain_jobs` | ジョブと給料 | M4 実装済み |
+| `gain_spawn` | スポーンの権威。初回・位置復元・死亡復帰 | 実装済み |
 | `gain_banking` | 現金 / 銀行 / ATM / 送金 | M4 実装済み |
+| `gain_build` | 図面（ゲーム内 CAD）と地縄張り | 開発中 |
 
 ## 前提
 
@@ -151,6 +153,21 @@ ATM は座標をサーバーが持てないため距離検証ができない（�
 
 ## 静的チェック
 
+検証機に `luac` は入っていない。構文とロードの確認は FXServer に読ませるのが早い。
+
 ```bash
-find fivem -name '*.lua' -print0 | xargs -0 -n1 luac -p
+fivem/scripts/dev-server.sh restart
+fivem/scripts/dev-server.sh errors
+```
+
+リポジトリ全体の静的検査（秘密情報・イベント保護・常時ループ・金銭・ドキュメント整合）:
+
+```bash
+fivem/scripts/check.sh
+```
+
+台帳の検算（`SUM(delta) == 残高`）はサーバーコンソールから:
+
+```
+gainverify
 ```

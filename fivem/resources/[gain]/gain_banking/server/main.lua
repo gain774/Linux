@@ -2,12 +2,6 @@
 
 local core = exports['gain_core']
 
-local function record(citizenid, kind, amount, counterparty, reason)
-    MySQL.insert('INSERT INTO gain_transactions (citizenid, kind, amount, counterparty, reason) VALUES (?, ?, ?, ?, ?)', {
-        citizenid, kind, amount, counterparty or '', reason or '',
-    })
-end
-
 --- 金額として妥当な整数のみを返す。
 local function amountOf(value)
     local amount = tonumber(value)
@@ -37,9 +31,13 @@ local function sendState(src)
     local player = core:GetPlayer(src)
     if not player then return end
 
+    -- 口座の明細なので bank の動きだけを出す。
+    -- 符号は delta から取る。kind の一覧を UI 側に持たせると、
+    -- 種別が増えるたびに符号が狂う
     local history = MySQL.query.await([[
-        SELECT kind, amount, counterparty, reason, created_at
-        FROM gain_transactions WHERE citizenid = ?
+        SELECT kind, amount, delta, counterparty, reason, created_at
+        FROM gain_transactions
+        WHERE citizenid = ? AND account = 'bank'
         ORDER BY id DESC LIMIT ?
     ]], { player.citizenid, BankConfig.HistoryLimit }) or {}
 
@@ -65,13 +63,14 @@ RegisterSafeEvent('gain_banking:deposit', { rate = { max = 5, per = 3000 } }, fu
     local player = core:GetPlayer(src)
     if not player then return end
 
-    if not core:RemoveMoney(src, 'cash', amount, 'deposit') then
-        core:Notify(src, _L('not_enough_cash'), 'error')
+    -- 現金と口座を同時に動かす。片方だけ反映されることが起きない
+    local ok, err = core:MoveMoney(src, 'cash', 'bank', amount,
+        { kind = 'deposit', reason = '預け入れ' })
+    if not ok then
+        core:Notify(src, err == 'limit' and '口座の上限を超えます。' or _L('not_enough_cash'), 'error')
         return
     end
 
-    core:AddMoney(src, 'bank', amount, 'deposit')
-    record(player.citizenid, 'deposit', amount, nil, '預け入れ')
     core:Notify(src, ('$%d を預け入れました。'):format(amount), 'success')
     sendState(src)
 end)
@@ -86,13 +85,13 @@ RegisterSafeEvent('gain_banking:withdraw', { rate = { max = 5, per = 3000 } }, f
     local player = core:GetPlayer(src)
     if not player then return end
 
-    if not core:RemoveMoney(src, 'bank', amount, 'withdraw') then
-        core:Notify(src, _L('not_enough_bank'), 'error')
+    local ok, err = core:MoveMoney(src, 'bank', 'cash', amount,
+        { kind = 'withdraw', reason = '引き出し' })
+    if not ok then
+        core:Notify(src, err == 'limit' and '現金の上限を超えます。' or _L('not_enough_bank'), 'error')
         return
     end
 
-    core:AddMoney(src, 'cash', amount, 'withdraw')
-    record(player.citizenid, 'withdraw', amount, nil, '引き出し')
     core:Notify(src, ('$%d を引き出しました。'):format(amount), 'success')
     sendState(src)
 end)
@@ -132,38 +131,53 @@ RegisterSafeEvent('gain_banking:transfer', { rate = { max = 3, per = 5000 } }, f
     local fee = math.floor(amount * BankConfig.Transfer.feeRate)
     local total = amount + fee
 
-    local target = core:GetPlayerByCitizenId(targetId)
-    local offline = nil
-
-    if not target then
-        offline = MySQL.single.await('SELECT citizenid, firstname, lastname FROM gain_characters WHERE citizenid = ?', { targetId })
-        if not offline then
-            core:Notify(src, _L('player_not_found'), 'error')
-            return
-        end
-    end
-
-    if not core:RemoveMoney(src, 'bank', total, ('transfer:%s'):format(targetId)) then
+    -- 先に送金者から引く。台帳に載る額が実際に引かれた額（手数料込）になる。
+    -- 手数料の内訳は reason に残す。
+    if not core:RemoveMoney(src, 'bank', total, {
+        kind = 'transfer_out', counterparty = targetId,
+        reason = fee > 0 and ('送金 手数料 $%d'):format(fee) or '送金',
+    }) then
         core:Notify(src, _L('not_enough_bank'), 'error')
         return
     end
 
-    if target then
-        core:AddMoney(target.source, 'bank', amount, ('transfer:%s'):format(player.citizenid))
-        core:Notify(target.source, ('%s から $%d が振り込まれました。'):format(player.name, amount), 'success')
-    else
-        MySQL.update.await('UPDATE gain_characters SET bank = bank + ? WHERE citizenid = ?', { amount, targetId })
+    -- 相手がオンラインかオフラインかの判定と入金は gain_core に任せる。
+    -- ここで存在確認の SELECT を挟むと、その yield の間に相手が接続して
+    -- 競合する。判定と実行を1箇所に寄せることで窓を消す。
+    local ok, err = core:AddMoneyOffline(targetId, 'bank', amount, {
+        kind = 'transfer_in', counterparty = player.citizenid, reason = '入金',
+    })
+
+    if not ok then
+        -- 入金できなければ全額返す。純差分が 0 になるので照合が通る。
+        -- 返金にも失敗したら金が消える。必ず鳴らす
+        local refunded = core:AddMoney(src, 'bank', total, {
+            kind = 'refund', counterparty = targetId, reason = '送金の失敗を戻した',
+        })
+        if not refunded then
+            core:Log('error', '返金にも失敗した。手動で補填が要る', {
+                citizenid = player.citizenid, amount = total,
+            })
+        end
+        core:Notify(src, err == 'limit' and '相手の口座が上限に達しています。'
+            or _L('player_not_found'), 'error')
+        core:Log('error', '送金の入金に失敗したので返金した', {
+            from = player.citizenid, to = targetId, amount = amount, err = err,
+        })
+        return
     end
 
-    record(player.citizenid, 'transfer_out', amount, targetId, fee > 0 and ('手数料 $%d'):format(fee) or '送金')
-    record(targetId, 'transfer_in', amount, player.citizenid, '入金')
+    local target = core:GetPlayerByCitizenId(targetId)
+    if target then
+        core:Notify(target.source, ('%s から $%d が振り込まれました。'):format(player.name, amount), 'success')
+    end
 
     core:Log('money', '送金', {
         from = player.citizenid,
         to = targetId,
         amount = amount,
         fee = fee,
-        offline = offline ~= nil,
+        offline = target == nil,
     })
 
     core:Notify(src, ('$%d を送金しました。'):format(amount), 'success')

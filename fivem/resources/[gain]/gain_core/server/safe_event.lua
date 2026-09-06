@@ -7,6 +7,8 @@
 
 local buckets = {}
 
+-- トークンバケット。固定ウィンドウだと窓の境界を跨いで
+-- per ミリ秒の間に最大 2*max 回通ってしまうため、こちらを使う。
 local function allowed(src, name, rate)
     local now = GetGameTimer()
     local perPlayer = buckets[src]
@@ -17,13 +19,31 @@ local function allowed(src, name, rate)
     end
 
     local bucket = perPlayer[name]
-    if not bucket or now - bucket.since >= rate.per then
-        perPlayer[name] = { since = now, count = 1 }
-        return true
+    if not bucket then
+        bucket = { tokens = rate.max, at = now }
+        perPlayer[name] = bucket
     end
 
-    bucket.count = bucket.count + 1
-    return bucket.count <= rate.max
+    -- 経過時間ぶんだけ補充する。上限は max
+    local refill = (now - bucket.at) * rate.max / rate.per
+    bucket.tokens = math.min(rate.max, bucket.tokens + refill)
+    bucket.at = now
+
+    if bucket.tokens < 1 then return false end
+
+    bucket.tokens = bucket.tokens - 1
+    return true
+end
+
+-- ログは export 経由で呼ぶ。
+-- このファイルは他リソースへ個別にロードされるため、そこからは
+-- gain_core のグローバル（GainLog）が見えない。以前は `if GainLog then`
+-- で握り潰していたので、gain_core 以外ではレート制限抵触も権限違反も
+-- 一切ログに残っていなかった。
+local function logCheat(message, meta)
+    pcall(function()
+        exports['gain_core']:Log('cheat', message, meta)
+    end)
 end
 
 --- 検証付きで net イベントを登録する。
@@ -41,27 +61,27 @@ function RegisterSafeEvent(name, opts, handler)
         if not src or src <= 0 then return end
 
         if not allowed(src, name, rate) then
-            if GainLog then
-                GainLog.write('cheat', 'イベントのレート制限に抵触', {
-                    event = name,
-                    player = GetPlayerName(src) or '?',
-                    id = src,
-                })
-            end
+            logCheat('イベントのレート制限に抵触', {
+                event = name,
+                player = GetPlayerName(src) or '?',
+                id = src,
+            })
             return
         end
 
         if opts.permission then
             local ok = exports['gain_core']:HasPermission(src, opts.permission)
             if not ok then
-                if GainLog then
-                    GainLog.write('cheat', '権限のないイベント呼び出し', {
-                        event = name,
-                        required = opts.permission,
-                        player = GetPlayerName(src) or '?',
-                        id = src,
-                    })
-                end
+                logCheat('権限のないイベント呼び出し', {
+                    event = name,
+                    required = opts.permission,
+                    player = GetPlayerName(src) or '?',
+                    id = src,
+                })
+                -- 黙って落とすと使う側が原因に辿り着けない
+                pcall(function()
+                    exports['gain_core']:Notify(src, _L('no_permission'), 'error')
+                end)
                 return
             end
         end

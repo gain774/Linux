@@ -2,6 +2,9 @@
 
 local tracked = {}
 
+--- 猶予の付与回数。短い間隔で何度も入るのは、正常な死に方ではない。
+local graceCount = {}
+
 local function reset(src)
     tracked[src] = {
         coords = nil,
@@ -16,19 +19,56 @@ end)
 
 AddEventHandler('playerDropped', function()
     tracked[source] = nil
+    graceCount[source] = nil
 end)
 
--- 死亡・リスポーン直後は座標が飛ぶので猶予を入れ直す
-RegisterNetEvent('baseevents:onPlayerDied', function()
-    reset(source)
+-- 死亡・リスポーン直後は座標が飛ぶので猶予を入れ直す。
+--
+-- 以前はここで baseevents:onPlayerDied / onPlayerKilled を生の
+-- RegisterNetEvent で受けていた。イベント名は公知なので、クライアントが
+-- 猶予時間より短い間隔で撃ち続けるだけで、テレポート検知と速度検知を
+-- 恒久的に無効化できた。クライアントからの入力を information source に
+-- しない形へ変えてある。
+--
+--   ・gain_spawn がサーバー側で確定させた死亡（gain_spawn:playerDied）
+--   ・巡回スレッドが見ている体力（0 になったら死亡とみなす）
+--
+-- 前者が使えない構成でも後者で拾えるようにしてある。
+AddEventHandler('gain_spawn:playerDied', function(src)
+    if src and src > 0 then reset(src) end
 end)
 
-RegisterNetEvent('baseevents:onPlayerKilled', function()
-    reset(source)
-end)
+local function grantGrace(src, why)
+    local now = GetGameTimer()
+    local g = graceCount[src]
+    if not g or now - g.since > 60000 then
+        g = { since = now, n = 0 }
+        graceCount[src] = g
+    end
 
-local function checkHealth(src, ped)
+    g.n = g.n + 1
+    if g.n > (ACConfig.Movement.maxGracePerMinute or 3) then
+        AC.flag(src, 'spam', '猶予の付与が異常に多い', { count = g.n, why = why })
+        return
+    end
+
+    reset(src)
+end
+
+local function checkHealth(src, ped, state)
     local health = GetEntityHealth(ped)
+
+    -- 死亡はサーバーが見ている体力で判定する。生き返った tick で猶予を張り直す。
+    -- 座標が飛ぶのは復帰の瞬間なので、ここで入れれば足りる
+    if state then
+        local dead = health <= 0
+        if dead ~= (state.wasDead or false) then
+            state.wasDead = dead
+            if not dead then grantGrace(src, 'revive') end
+        end
+        if dead then return end
+    end
+
     if health > ACConfig.Health.max then
         AC.flag(src, 'health', '体力が上限を超えている', { health = health })
     end
@@ -55,7 +95,7 @@ local function checkMovement(src, ped, state)
     local previous = state.coords
     state.coords = coords
 
-    if elapsed <= 0 or now < state.graceUntil then return end
+    if elapsed <= 0 or now < state.graceUntil or state.wasDead then return end
 
     local distance = #(coords - previous)
     local speed = distance / elapsed
@@ -94,7 +134,7 @@ CreateThread(function()
                     state = tracked[src]
                 end
 
-                checkHealth(src, ped)
+                checkHealth(src, ped, state)
                 checkMovement(src, ped, state)
             end
         end

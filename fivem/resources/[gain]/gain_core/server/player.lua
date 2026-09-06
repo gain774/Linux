@@ -55,10 +55,7 @@ local function ensureUser(license, name)
     local user = MySQL.single.await('SELECT license, permission FROM gain_users WHERE license = ?', { license })
 
     if not user then
-        local permission = 'user'
-        for _, owner in ipairs(Config.Owners) do
-            if owner == license then permission = 'owner' end
-        end
+        local permission = Owners.has(license) and 'owner' or 'user'
 
         MySQL.insert.await('INSERT INTO gain_users (license, name, permission) VALUES (?, ?, ?)', {
             license, name, permission,
@@ -66,12 +63,10 @@ local function ensureUser(license, name)
         return { license = license, permission = permission }
     end
 
-    -- Config.Owners は毎回反映する（鍵を失った時の復旧手段）
-    for _, owner in ipairs(Config.Owners) do
-        if owner == license and user.permission ~= 'owner' then
-            MySQL.update.await('UPDATE gain_users SET permission = ? WHERE license = ?', { 'owner', license })
-            user.permission = 'owner'
-        end
+    -- オーナー指定は毎回反映する（権限を失ったときの復旧手段）
+    if Owners.has(license) and user.permission ~= 'owner' then
+        MySQL.update.await('UPDATE gain_users SET permission = ? WHERE license = ?', { 'owner', license })
+        user.permission = 'owner'
     end
 
     MySQL.update('UPDATE gain_users SET name = ? WHERE license = ?', { name, license })
@@ -89,6 +84,18 @@ local function createCharacter(license, name)
         json.encode(Config.DefaultSpawn),
     })
 
+    -- 初期資金を台帳の起点として計上する。これが無いと
+    -- SUM(delta) == 残高 が最初から成立しない
+    for account, amount in pairs({ cash = Config.StartingCash, bank = Config.StartingBank }) do
+        if amount and amount > 0 then
+            Ledger.push({
+                citizenid = citizenid, account = account,
+                delta = amount, balance = amount,
+                kind = 'opening', reason = '初期資金',
+            })
+        end
+    end
+
     return MySQL.single.await('SELECT * FROM gain_characters WHERE citizenid = ?', { citizenid })
 end
 
@@ -104,8 +111,8 @@ local function buildPlayer(src, license, user, row)
         name = (row.lastname ~= '' and (row.firstname .. ' ' .. row.lastname)) or row.firstname,
         permission = user.permission or 'user',
         money = {
-            cash = row.cash or 0,
-            bank = row.bank or 0,
+            cash = math.max(0, math.min(row.cash or 0, Config.MoneyLimit)),
+            bank = math.max(0, math.min(row.bank or 0, Config.MoneyLimit)),
         },
         job = {
             name = row.job or 'unemployed',
@@ -132,13 +139,13 @@ local function buildPlayer(src, license, user, row)
     end
 
     function self.save()
+        -- cash / bank はここで書かない。台帳（ledger.lua）が唯一の書き手。
+        -- 絶対代入をやめたことで、オフライン入金を上書きして消す経路が無くなった。
         MySQL.update([[
             UPDATE gain_characters
-            SET cash = ?, bank = ?, job = ?, job_grade = ?, job_duty = ?, position = ?, metadata = ?
+            SET job = ?, job_grade = ?, job_duty = ?, position = ?, metadata = ?
             WHERE citizenid = ?
         ]], {
-            self.money.cash,
-            self.money.bank,
             self.job.name,
             self.job.grade,
             self.job.duty and 1 or 0,
@@ -238,6 +245,7 @@ AddEventHandler('playerDropped', function(reason)
     if not player then return end
 
     player.save()
+    Ledger.flushNow()
     players[src] = nil
 
     TriggerEvent('gain_core:playerUnloaded', src, player.citizenid)

@@ -33,8 +33,12 @@ local function makeXPlayer(player)
     function xPlayer.getIdentifier() return player.license end
 
     function xPlayer.getMoney() return Money.get(player, 'cash') end
-    function xPlayer.addMoney(amount, reason) return Money.add(player, 'cash', amount, reason or 'esx') end
-    function xPlayer.removeMoney(amount, reason) return Money.remove(player, 'cash', amount, reason or 'esx') end
+    function xPlayer.addMoney(amount, reason)
+        return Money.add(player, 'cash', amount, { kind = 'compat', reason = reason or 'esx' })
+    end
+    function xPlayer.removeMoney(amount, reason)
+        return Money.remove(player, 'cash', amount, { kind = 'compat', reason = reason or 'esx' })
+    end
 
     function xPlayer.getAccount(name)
         local account = (name == 'bank') and 'bank' or 'cash'
@@ -43,12 +47,12 @@ local function makeXPlayer(player)
 
     function xPlayer.addAccountMoney(name, amount, reason)
         local account = (name == 'bank') and 'bank' or 'cash'
-        return Money.add(player, account, amount, reason or 'esx')
+        return Money.add(player, account, amount, { kind = 'compat', reason = reason or 'esx' })
     end
 
     function xPlayer.removeAccountMoney(name, amount, reason)
         local account = (name == 'bank') and 'bank' or 'cash'
-        return Money.remove(player, account, amount, reason or 'esx')
+        return Money.remove(player, account, amount, { kind = 'compat', reason = reason or 'esx' })
     end
 
     function xPlayer.getJob() return xPlayer.job end
@@ -136,11 +140,13 @@ local function makeQBPlayer(player)
     }
 
     function qb.Functions.AddMoney(account, amount, reason)
-        return Money.add(player, account == 'bank' and 'bank' or 'cash', amount, reason or 'qb')
+        return Money.add(player, account == 'bank' and 'bank' or 'cash', amount,
+            { kind = 'compat', reason = reason or 'qb' })
     end
 
     function qb.Functions.RemoveMoney(account, amount, reason)
-        return Money.remove(player, account == 'bank' and 'bank' or 'cash', amount, reason or 'qb')
+        return Money.remove(player, account == 'bank' and 'bank' or 'cash', amount,
+            { kind = 'compat', reason = reason or 'qb' })
     end
 
     function qb.Functions.GetMoney(account)

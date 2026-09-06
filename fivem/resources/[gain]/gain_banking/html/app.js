@@ -7,9 +7,17 @@ const KIND_LABEL = {
     transfer_in: '入金',
     transfer_out: '送金',
     salary: '給料',
+    mission: '業務報酬',
+    refund: '返金',
+    opening: '初期資金',
+    admin: '管理操作',
+    adjust: '調整',
+    compat: '外部リソース',
 };
 
-const INCOMING = new Set(['deposit', 'transfer_in', 'salary']);
+// 符号はサーバーが返す delta から取る。種別の一覧をここに持つと、
+// kind が増えるたびに符号が狂う
+const isIncoming = (row) => Number(row.delta) > 0;
 
 let mode = 'bank';
 
@@ -44,7 +52,7 @@ function setState(state) {
     }
 
     state.history.forEach((row) => {
-        const incoming = INCOMING.has(row.kind);
+        const incoming = isIncoming(row);
         const el = document.createElement('div');
         el.className = 'entry';
         el.innerHTML = `

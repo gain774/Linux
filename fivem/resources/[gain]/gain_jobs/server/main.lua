@@ -13,12 +13,6 @@ local function distanceTo(src, point)
     return #(coords - vector3(point.x, point.y, point.z))
 end
 
-local function recordSalary(citizenid, amount)
-    MySQL.insert('INSERT INTO gain_transactions (citizenid, kind, amount, counterparty, reason) VALUES (?, ?, ?, ?, ?)', {
-        citizenid, 'salary', amount, '', '給料',
-    })
-end
-
 ----------------------------------------------------------------------
 -- 就職 / 退職
 ----------------------------------------------------------------------
@@ -221,9 +215,15 @@ RegisterSafeEvent('gain_jobs:finishMission', { rate = { max = 3, per = 10000 } }
 
     -- 報酬はサーバー側の config からのみ計算する
     local pay = done * job.mission.payPerStop + job.mission.bonus
-    missions[src] = nil
 
-    core:AddMoney(src, 'cash', pay, ('mission:%s'):format(job.label))
+    -- 付与してからミッションを消す。順序を逆にすると、付与に失敗したときに
+    -- 再受け取りができなくなる
+    if not core:AddMoney(src, 'cash', pay, { kind = 'mission', reason = job.label }) then
+        core:Notify(src, '所持金の上限に達しているため受け取れません。', 'error')
+        return
+    end
+
+    missions[src] = nil
     TriggerClientEvent('gain_jobs:setMission', src, nil)
     core:Notify(src, ('業務完了。報酬 $%d を受け取りました。'):format(pay), 'success')
 end)
@@ -242,8 +242,8 @@ CreateThread(function()
 
             if grade and grade.salary > 0 then
                 if not JobConfig.PayOnDutyOnly or player.job.duty then
-                    if core:AddMoney(player.source, 'bank', grade.salary, 'salary') then
-                        recordSalary(player.citizenid, grade.salary)
+                    if core:AddMoney(player.source, 'bank', grade.salary,
+                        { kind = 'salary', reason = job.label }) then
                         core:Notify(player.source,
                             ('給料 $%d が振り込まれました。'):format(grade.salary), 'success')
                     end

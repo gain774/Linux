@@ -72,6 +72,7 @@ mariadb -u gain -pgainlocal gain -e \
 | `gain_anticheat` | 体力・移動・武器・爆発の検知と段階処分 |
 | `gain_jobs` | 就職・出退勤・巡回業務・給料 |
 | `gain_banking` | 銀行窓口・ATM・送金・履歴 |
+| `gain_build` | 図面（ゲーム内 CAD）・地縄張り。素材と労働力は未実装 |
 
 ### 守っている原則
 
@@ -80,6 +81,9 @@ mariadb -u gain -pgainlocal gain -e \
 - **金額・権限・到達判定はすべてサーバー側。** クライアントから来た数値は使わない
 - **残高の変更は必ず取引履歴を伴う。** 不変条件は
   `SUM(gain_transactions.delta) == gain_characters.<account>`。
+  `gain_characters` の `cash` / `bank` を書く SQL は `server/ledger.lua` だけ。
+  `player.save()` は残高を書かない（絶対上書きで他経路を踏み潰さないため）。
+  検算は `gainverify` をサーバーコンソールで叩く
   `gain_transactions` には `account` と符号付き `delta` があり、ここから残高を再現できる
 - **コアに `Wait(0)` の常時ループを置かない**
 - **クライアントから叩ける net イベントは `RegisterSafeEvent` を通す**

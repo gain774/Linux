@@ -54,6 +54,20 @@ exports('SetMoney', function(src, account, amount, reason)
     return Money.set(GetGainPlayer(src), account, amount, reason)
 end)
 
+--- 口座間の移動。両側を先に検査するので片方だけ反映されることが起きない。
+--- 預入・引出はこれを使う。
+exports('MoveMoney', function(src, from, to, amount, meta)
+    return Money.move(GetGainPlayer(src), from, to, amount, meta)
+end)
+
+--- 詳細が要る呼び出し向け。error は invalid / insufficient / limit / no_player。
+exports('ApplyMoney', function(src, account, delta, meta)
+    local ok, result = Money.apply(GetGainPlayer(src), account, delta, meta)
+    result = result or {}
+    result.ok = ok
+    return result
+end)
+
 exports('GetJob', function(src)
     local player = GetGainPlayer(src)
     if not player then return nil end

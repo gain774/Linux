@@ -157,7 +157,8 @@ function actions.givemoney(src, target, payload)
         return
     end
 
-    if core:AddMoney(target, account, amount, ('admin:%s'):format(adminName(src))) then
+    if core:AddMoney(target, account, amount,
+        { kind = 'admin', reason = ('付与: %s'):format(adminName(src)) }) then
         core:Log('admin', '所持金を付与', {
             by = adminName(src),
             target = GetPlayerName(target),
