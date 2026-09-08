@@ -1239,10 +1239,14 @@ exports['dyn_economy']:CommitBuy(identifier, item, qty, shopId)   --> { ok, tota
 
 ## 12. 実装フェーズ
 
+**実装状況**: Phase 1〜2 は `resources/dyn_economy` に実装済み（[README](../resources/dyn_economy/README.md)）。
+FiveM を起動せずに走る単体・結合テストが `tests/` にあり、`./tests/run_all.sh` で実行できる。
+Phase 3 以降はフレームワーク確定待ち。
+
 | Phase | 内容 | 完了条件 |
 |---|---|---|
-| 1 | スキーマ作成、`dyn_items` の初期投入（既存店舗の固定価格から自動生成） | テーブルが作られ、全取扱品に行がある |
-| 2 | `pricing.lua`（§4）＋ exports（§10）。既存店舗はまだ触らない | `/dyn_quote <item> <qty>` で価格が返る |
+| 1 ✅ | スキーマ作成、`dyn_items` の初期投入（既存店舗の固定価格から自動生成） | テーブルが作られ、全取扱品に行がある |
+| 2 ✅ | `pricing.lua`（§4）＋ exports（§10）。既存店舗はまだ触らない | `/dyn_quote <item> <qty>` で価格が返る |
 | 3 | ブリッジ経由で既存 NPC 店舗を `Quote/Commit` に置換 | 売買が動的価格で通り `dyn_npc_tx` に記録される |
 | 4 | レシピインポータと原価計算（§5） | `mat_cost` が埋まり、下限価格が効く |
 | 5 | 価格履歴の 1 時間バケット集計、UI の価格変動表示 | 直近推移が見える |
