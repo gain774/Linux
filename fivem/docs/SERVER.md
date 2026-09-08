@@ -9,6 +9,7 @@
 |---|---|
 | リポジトリ | `~/gain-framework` / `~/civ` |
 | 同期点（bare） | `~/repos/gain-framework.git` / `~/repos/civ.git` |
+| 外部バックアップ | GitHub（`gain774/Linux` と `gain774/civ`） |
 | FiveM | `~/fivem`（artifacts 35245 + server-data） |
 | DB | MariaDB 11.8.6、`gain` / `gainlocal` |
 
@@ -27,6 +28,24 @@ cd ~/gain-framework
 ```
 
 `GAIN_DEV_ROOT` を忘れると母艦のパスを見に行って動かない。
+
+## リポジトリの同期
+
+3箇所に同じものがある。**gainserver が主**で、母艦は bare 経由、GitHub は外部バックアップ。
+
+```
+母艦(WSL) ──push──▶ ~/repos/*.git ◀──push── gainserver ──push──▶ GitHub
+```
+
+gainserver から GitHub へ:
+
+```bash
+git push github <branch>
+```
+
+GitHub へ出せる鍵は **gainserver にだけ** 置いてある（`~/.ssh/github_ed25519`）。
+外に出す鍵を1本に絞ったほうが管理が楽なので、母艦には置かない。
+母艦は `git push server` で bare へ出し、gainserver がそれを GitHub へ中継する。
 
 ## 遠隔アクセス
 
