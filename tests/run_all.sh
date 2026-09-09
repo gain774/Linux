@@ -22,3 +22,7 @@ echo
 
 echo "== 結合テスト（価格スタック） =="
 "$LUA" tests/integration.lua
+echo
+
+echo "== 決済フロー（ブリッジ） =="
+"$LUA" tests/bridge.lua

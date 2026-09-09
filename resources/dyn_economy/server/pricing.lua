@@ -137,8 +137,22 @@ function DynPricing.commit(identifier, itemName, qty, direction, shopId)
 
     q.stockBefore = before
     q.stockAfter  = after
-    DynLedger.record(identifier, q, shopId)
+    q.txId        = DynLedger.record(identifier, q, shopId)
     return q
+end
+
+--[[
+  確定した取引を取り消す（仮想在庫を戻し、取引を voided にする）。
+
+  決済の途中で失敗したときに呼ぶ。呼び出し側が「金は動かせなかったが在庫だけ動いた」
+  という状態を残さないための逃げ道であり、通常の運用では使わない。
+]]
+function DynPricing.void(q)
+    if not q or q.voided then return false end
+    DynState.addStock(q.item, q.direction == 'sell' and -q.qty or q.qty)
+    DynLedger.void(q.txId)
+    q.voided = true
+    return true
 end
 
 function DynPricing.commitSell(identifier, itemName, qty, shopId)

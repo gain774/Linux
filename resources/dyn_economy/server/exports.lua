@@ -9,14 +9,17 @@
 local function ok(res, err)
     if not res then return { ok = false, error = err } end
     return {
-        ok       = true,
-        total    = res.total,
-        unitAvg  = res.unitAvg,
-        priceNow = res.priceNow,
-        tax      = res.tax,
-        qty      = res.qty,
-        item     = res.item,
-        stock    = res.stock,
+        ok        = true,
+        total     = res.total,
+        unitAvg   = res.unitAvg,
+        priceNow  = res.priceNow,
+        tax       = res.tax,
+        qty       = res.qty,
+        item      = res.item,
+        stock     = res.stock,
+        -- 取り消しに必要な情報。Commit の戻り値をそのまま VoidCommit に渡せる
+        direction = res.direction,
+        txId      = res.txId,
     }
 end
 
@@ -53,6 +56,23 @@ exports('GetItemInfo', function(item)
         sellable    = it.npcSellable,
         buyable     = it.npcBuyable,
     }
+end)
+
+--[[
+  確定済みの取引を取り消す。CommitSell / CommitBuy の戻り値をそのまま渡す。
+
+  決済の途中で失敗した店舗側が、仮想在庫だけ動いた状態を残さないために呼ぶ。
+  通常の売買では使わない。
+]]
+exports('VoidCommit', function(committed)
+    if type(committed) ~= 'table' then return { ok = false, error = 'bad_argument' } end
+    local done = DynPricing.void({
+        item      = committed.item,
+        qty       = committed.qty,
+        direction = committed.direction,
+        txId      = committed.txId,
+    })
+    return { ok = done }
 end)
 
 exports('IsReady', function() return DynState.count() > 0 end)

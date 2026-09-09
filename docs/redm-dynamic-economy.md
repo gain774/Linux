@@ -1199,13 +1199,34 @@ exports['dyn_economy']:CommitBuy(identifier, item, qty, shopId)   --> { ok, tota
 `Quote` と `Commit` を分けるのは、メニュー表示と実際の決済の間に価格が動いても
 表示額で確定させない（＝同時売却による抜け穴を作らない）ため。`Commit` の戻り値が正。
 
+### 10.1 決済の順序（実装済み）
+
+順序を間違えると金か現物が増える。ブリッジの `txflow.lua` はこの順に固定してある。
+
+| 方向 | 順序 |
+|---|---|
+| 売却 | 見積り → 所持数の確認 → **現物を引く** → 価格を確定 → 入金 |
+| 購入 | 見積り → 所持容量の確認 → 所持金の確認 → 価格を確定 → 支払い → **現物を渡す** |
+
+- 売却で現物を先に引くのは、引けなければ何も起きていない状態で止まれるから
+- インベントリ操作は yield する。**所持金の確認と価格の確定の間で yield してはいけない**
+  （確認した残高と実際に引く額がズレる）。yield する所持容量の確認を先に済ませる
+- 途中で失敗したら、金は返し、現物は戻し、`VoidCommit` で仮想在庫と取引記録も戻す。
+  取引の行は消さず `voided = 1` を立てる。何が起きたかを残すほうが後の調査で役に立つ
+
 ### 10.1 既存店舗への組み込み方針
 
-| フレームワーク | 差し込み箇所 |
-|---|---|
-| RSGCore | `rsg-shops` の売買サーバーイベントで固定価格参照を `Quote/Commit` に置換 |
-| VORP | `vorp_stores` の価格取得部を置換。`vorp_inventory` の addItem/subItem はそのまま |
-| RedEM:RP | 各店舗リソースの売却ハンドラを置換 |
+**フレームワークは VORP に確定**（vorp_core 3.3 / vorp_inventory 4.5）。
+ブリッジは `resources/dyn_economy_bridge` に実装済み。他フレームワーク向けは書かない。
+
+店舗リソース側は、固定価格の計算と決済を次の 1 行に置き換える。
+
+```lua
+local res = exports['dyn_economy_bridge']:SellToNpc(source, item, qty, shopId)
+local res = exports['dyn_economy_bridge']:BuyFromNpc(source, item, qty, shopId)
+```
+
+所持金・インベントリの操作と、失敗時の巻き戻しはブリッジ側で完結する。
 
 アダプタが提供すべき関数は 4 つだけ:
 `GetIdentifier(src)` / `GetMoney(src)` / `AddMoney(src, amt)` / `RemoveMoney(src, amt)`
@@ -1239,15 +1260,18 @@ exports['dyn_economy']:CommitBuy(identifier, item, qty, shopId)   --> { ok, tota
 
 ## 12. 実装フェーズ
 
-**実装状況**: Phase 1〜2 は `resources/dyn_economy` に実装済み（[README](../resources/dyn_economy/README.md)）。
-FiveM を起動せずに走る単体・結合テストが `tests/` にあり、`./tests/run_all.sh` で実行できる。
-Phase 3 以降はフレームワーク確定待ち。
+**実装状況**:
+- Phase 1〜2 … `resources/dyn_economy`（[README](../resources/dyn_economy/README.md)）
+- Phase 3 … `resources/dyn_economy_bridge`（[README](../resources/dyn_economy_bridge/README.md)）。
+  VORP アダプタと決済フローは実装済み。残るのは既存店舗リソース側の呼び出し差し替え
+
+FiveM を起動せずに走るテストが `tests/` にあり、`./tests/run_all.sh` で実行できる。
 
 | Phase | 内容 | 完了条件 |
 |---|---|---|
 | 1 ✅ | スキーマ作成、`dyn_items` の初期投入（既存店舗の固定価格から自動生成） | テーブルが作られ、全取扱品に行がある |
 | 2 ✅ | `pricing.lua`（§4）＋ exports（§10）。既存店舗はまだ触らない | `/dyn_quote <item> <qty>` で価格が返る |
-| 3 | ブリッジ経由で既存 NPC 店舗を `Quote/Commit` に置換 | 売買が動的価格で通り `dyn_npc_tx` に記録される |
+| 3 ⏳ | ブリッジ経由で既存 NPC 店舗を `Quote/Commit` に置換 | ブリッジは実装済み。店舗リソース側の差し替えが残り |
 | 4 | レシピインポータと原価計算（§5） | `mat_cost` が埋まり、下限価格が効く |
 | 5 | 価格履歴の 1 時間バケット集計、UI の価格変動表示 | 直近推移が見える |
 | 5.5 | §6.2 の bootstrap 較正とドライラン。既存店舗の価格表から `currency_scale` を逆算 | `/dyn_calibrate --dry-run` が差分表を出す |
@@ -1277,9 +1301,11 @@ Phase 5.7（税の記帳）だけは早めに入れておくとよい。挙動�
 
 ## 13. 未確定・要確認
 
-1. **フレームワーク**（RSGCore / VORP / RedEM:RP）— 未確定。確定次第 §10.1 のブリッジを 1 本だけ実装する
-2. **インベントリ**（`ox_inventory` を使っているか、フレームワーク標準か）— metadata の扱いが変わる
+1. ~~**フレームワーク**~~ — **VORP に確定**（vorp_core 3.3 / vorp_inventory 4.5）。ブリッジ実装済み
+2. ~~**インベントリ**~~ — vorp_inventory。metadata 省略時は `{}` ではなく `nil` を渡す必要がある
+   （`{}` は Lua では truthy なので「メタデータ一致検索」に入り常に 0 件になる）
 3. **既存の NPC 店舗リソース名**と、現在の固定価格表の所在（Lua ハードコードか DB か）
+   — これが分かれば §6.2 の bootstrap 較正を実データで回し、`price_index` を生成できる
 4. **既存 DB に売買ログがあるか** — あれば初期の `virtual_stock` をそこから逆算して滑らかに移行できる
 5. **通貨** — 単一通貨か、金塊など第二通貨があるか
 6. **プレイ時間の取得手段** — 較正（§6.6）は「プレイ時間あたりの獲得量」が要るので、

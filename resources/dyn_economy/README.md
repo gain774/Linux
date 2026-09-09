@@ -8,10 +8,14 @@ RedM 向けの需給連動 価格エンジン。設計は [`docs/redm-dynamic-ec
 | | |
 |---|---|
 | 実装済み | 仮想在庫モデル（§4.1〜4.3）、まとめ売りの積分価格（§4.2）、物価水準レイヤー（§4.5）、価格スタック（§4.6）、レシピ原価による下限（§5）、exports（§10）、アンカーからの `currency_scale` 導出（§6.2 B） |
-| 未実装 | 既存 NPC 店舗への接続（Phase 3・要ブリッジ）、レシピインポータ（Phase 4）、自動較正（§6）、成長曲線（§7）、委託所（§8）、国庫・組合（§9） |
+| 未実装 | レシピインポータ（Phase 4）、自動較正（§6）、成長曲線（§7）、委託所（§8）、国庫・組合（§9） |
 
-**フレームワークにはまだ繋がっていない。** 価格の計算と記録だけを行い、
-所持金とインベントリは一切触らない。接続は `dyn_economy_bridge` を書く Phase 3 の作業。
+**フレームワーク接続は [`dyn_economy_bridge`](../dyn_economy_bridge/README.md) が担当する**（VORP）。
+このリソース単体では所持金もインベントリも触らない。
+
+**このリソースは価格の計算と記録だけを行い、所持金とインベントリは一切触らない。**
+その境界は `dyn_economy_bridge` が受け持つ。ここに金銭処理を持たせると、
+フレームワークが変わるたびに価格エンジン本体を書き換える羽目になる。
 
 ## 依存
 
@@ -53,6 +57,9 @@ exports['dyn_economy']:CommitBuy(identifier, item, qty, shopId)
 
 -- 一覧表示用
 exports['dyn_economy']:GetItemInfo(item)  --> { npcBuy, npcSell, stock, targetStock, matCost, ... }
+
+-- 決済の途中で失敗したときの取り消し。Commit の戻り値をそのまま渡す
+exports['dyn_economy']:VoidCommit(committed)
 ```
 
 `Quote` と `Commit` を分けているのは、メニュー表示と決済の間に価格が動いても表示額で

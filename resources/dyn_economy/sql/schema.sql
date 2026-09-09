@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS dyn_npc_tx (
   stock_after     DECIMAL(14,4) NOT NULL,
   shop            VARCHAR(64)   NULL,
   price_breakdown JSON          NULL,
+  voided          TINYINT(1)    NOT NULL DEFAULT 0,
   created_at      DATETIME      NOT NULL,
   INDEX idx_item_time (item, created_at),
   INDEX idx_ident_time (identifier, created_at)
