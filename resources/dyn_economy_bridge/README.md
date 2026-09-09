@@ -84,6 +84,53 @@ local q = exports['dyn_economy_bridge']:Quote(source, 'corn', 20, 'sell')
 VORP の `removeCurrency` は残高を検査せずマイナスまで引くので、
 残高の確認はこちら側の責任になっている。
 
+## 他リソースとの干渉（`server/compat.lua`）
+
+配布物のソースを実際に読んで確認した干渉点。起動時に検出する。
+**他リソースの設定は書き換えない** — 勝手に他人のリソースを変更するほうが事故が大きいので、
+こちらが降りる（品目を無効化する）か、警告を出すかに留めている。
+
+### 起動時に自動で無効化されるもの
+
+| 対象 | 理由 |
+|---|---|
+| vorp_inventory の `items` に登録が無い品目 | 残すと売買のたびに `Item [x] does not exist in DB.` がコンソールに出続け、`canCarryItem` が常に false を返して購入が全部失敗する |
+| 武器 | `items` ではなく `loadout` 側で管理されており、`addItem` / `subItem` が効かない。上の検証で自動的に弾かれる |
+| 劣化アイテム（`maxDegradation > 0`） | 価格エンジンは個体の劣化度を見ないので、状態の悪い品を満額で売れてしまう（vorp_stores は `percentage / 100` を価格に掛けている）。承知のうえで扱うなら `compat.allowDegradable = true` |
+
+無効化された品目は起動ログに一覧で出る。永続化はせず、起動のたびに判定し直す。
+
+### 手で直す必要があるもの
+
+**vorp_stores を使っている場合、`config.lua` で次の 2 つを `false` にすること。**
+起動時に検出して警告を出すが、こちらからは書き換えない。
+
+```lua
+RandomPrices = false,   -- true だと再起動のたびに価格をランダムに振り直し、需給の結果が毎回消える
+DynamicStore = false,   -- true だと店舗ごとの在庫上限を独自に持ち、仮想在庫と二重管理になる
+```
+
+そのほか運用で避けるもの:
+
+- **gold / ROL 建ての品目を `dyn_items` に入れない。** vorp_stores は品目ごとに通貨を選べるが、
+  価格エンジンは単一通貨を前提にしている
+- **vorp_banking を使っている場合、所持金は `character.money` ではなく `bank_users` テーブルにもある。**
+  資産センサス（設計 §6.4、Phase 5.6）は両方を合算しないと総額が合わない
+
+### インベントリイベントの扱い
+
+`vorp_inventory:Server:OnItemCreated` / `OnItemRemoved` は、クエスト進行・ログ・アンチチートなどが
+listen していることがある。
+
+- **通常の売買では発火させる。** 普通の店と同じ挙動にしないと、それらから取引が見えなくなる
+- **巻き戻し（決済に失敗して現物を返す）では抑止する。** `addItem` / `subItem` の第 6 引数
+  `allow = true` を渡す。発火させると他スクリプトが二重にカウントする
+
+### DB ドライバ
+
+vorp_core 3.3 と vorp_inventory 4.5 はどちらも `@oxmysql/lib/MySQL.lua` を読み込んでいる。
+oxmysql は必ず存在するので、ドライバの衝突は無い。
+
 ## VORP API のはまりどころ
 
 - `Core = exports.vorp_core:GetCore()` を使う。`getCore` イベントは非推奨
@@ -102,8 +149,11 @@ VORP の `removeCurrency` は残高を検査せずマイナスまで引くので
 ## テスト
 
 ```bash
-./tests/run_all.sh        # tests/bridge.lua が決済フローの 42 アサーションを検証する
+./tests/run_all.sh
 ```
+
+- `tests/bridge.lua` … 決済フロー。価格エンジンは本物を使い、所持金と現物だけスタブに差し替える
+- `tests/compat.lua` … 品目の突き合わせと vorp_stores の設定衝突検出
 
 価格エンジンは本物を使い、所持金と現物だけスタブに差し替えている。
 失敗経路（現物を引けない・所持金不足・持ちきれない・現物を渡せない）で

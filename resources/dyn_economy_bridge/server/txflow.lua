@@ -46,7 +46,9 @@ function F.sellToNpc(deps, source, item, qty, shopId)
 
     local commit = econ.commitSell(identifier, item, qty, shopId)
     if not commit or not commit.ok then
-        a.addItem(source, item, qty)          -- 現物を返す
+        -- 現物を返す。巻き戻しなのでインベントリイベントは発火させない
+        -- （発火させると、取引を監視している他スクリプトが二重にカウントする）
+        a.addItem(source, item, qty, nil, true)
         return nil, (commit and commit.error) or 'commit_failed'
     end
 
@@ -96,6 +98,7 @@ function F.buyFromNpc(deps, source, item, qty, shopId)
         econ.void(commit)                     -- 仮想在庫と取引記録も戻す
         return nil, 'add_item_failed'
     end
+
 
     return commit
 end

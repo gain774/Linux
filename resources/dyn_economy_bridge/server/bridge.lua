@@ -56,6 +56,11 @@ CreateThread(function()
 
     while not Adapter.isReady() do Wait(500) end
     print(('[dyn_economy_bridge] %s アダプタを使用します'):format(Adapter.name))
+
+    -- dyn_economy と vorp_inventory の品目読み込みが終わるのを待ってから突き合わせる
+    while not exports.dyn_economy:IsReady() do Wait(500) end
+    Wait(2000)
+    DynCompat.run()
 end)
 
 --- プレイヤーが NPC に売る

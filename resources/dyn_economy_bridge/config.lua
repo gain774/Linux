@@ -15,4 +15,23 @@ BridgeConfig = {
 
     -- 通貨記号。通知の文面に使う
     currencyLabel = '$',
+
+    -- 他リソースとの互換（server/compat.lua）
+    compat = {
+        -- 起動時に dyn_economy の品目を vorp_inventory の登録内容と突き合わせる。
+        -- 登録が無い品目は自動で無効化する。これをしないと売買のたびに
+        -- vorp_inventory が「does not exist in DB」をコンソールに出し続け、
+        -- canCarryItem も常に false を返す。
+        validateItems = true,
+
+        -- 劣化アイテム（maxDegradation > 0）を扱うか。
+        -- 既定は false。価格エンジンは個体の劣化度を見ないので、
+        -- 許可すると状態の悪い品を満額で売れてしまう（vorp_stores は
+        -- percentage/100 を価格に掛けている）。
+        allowDegradable = false,
+
+        -- vorp_stores の RandomPrices / DynamicStore が有効なままだと、
+        -- 価格と在庫を二重に制御することになる。起動時に検出して警告する。
+        warnStoreConflicts = true,
+    },
 }

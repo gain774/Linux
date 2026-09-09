@@ -3,8 +3,13 @@ Config = Config or {}
 -- 需給による価格変動そのもの（§4）。false にすると全て固定価格になる
 Config.Dynamic = { enabled = true }
 
--- 物価水準レイヤー（§4.5）。Phase 1〜2 では cpi_mult は 1.0 のまま動かない
-Config.PriceLevel = { enabled = true }
+-- 物価水準レイヤー（§4.5）。需給とは別軸の全体倍率。
+-- cpi_mult は較正レイヤー（§6〜§7、いずれも未実装）が動かすので、今は 1.0 のまま。
+-- categoryMult は季節・イベント用に手で与える（例: winter = { crop = 1.25 }）。
+Config.PriceLevel = {
+    enabled      = true,
+    categoryMult = {},
+}
 
 -- レシピ原価による下限価格（§5）
 Config.Recipes = {
@@ -35,5 +40,3 @@ Config.Db = {
     autoMigrate = true,       -- 起動時に sql/schema.sql を流す
     persistSec  = 60,         -- 仮想在庫を DB に書き戻す間隔（秒）
 }
-
-Config.Debug = false

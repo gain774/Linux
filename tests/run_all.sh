@@ -26,3 +26,7 @@ echo
 
 echo "== 決済フロー（ブリッジ） =="
 "$LUA" tests/bridge.lua
+echo
+
+echo "== 他リソースとの互換 =="
+"$LUA" tests/compat.lua

@@ -6,29 +6,41 @@
 ]]
 DynState = {}
 
-local items   = {}   -- item -> { 設定 + stock, updatedAt, matCost, dirty }
-local econ    = { currency_scale = 1.0, cpi_mult = 1.0 }
-local catMult = {}   -- category -> 物価倍率（§4.5、Phase 1〜2 では常に 1.0）
+local items = {}   -- item -> { 設定 + stock, updatedAt, matCost, dirty }
+local econ  = { currency_scale = 1.0, cpi_mult = 1.0 }
 
 local function nowSec() return os.time() end
 
+-- カテゴリ既定値から継承する項目（config/categories.lua のキーと同名）
+local INHERITED = { 'elasticity', 'minMult', 'maxMult', 'halfLifeMin', 'spread' }
+
+-- DB 側の運用値で上書きする列 -> 内部フィールド
+local DB_NUMBERS = {
+    target_stock = 'targetStock', elasticity  = 'elasticity', min_mult = 'minMult',
+    max_mult     = 'maxMult',     half_life_min = 'halfLifeMin',
+    npc_spread   = 'spread',      price_index = 'priceIndex',
+}
+local DB_FLAGS = {
+    npc_sellable = 'npcSellable', npc_buyable = 'npcBuyable',
+    pinned       = 'pinned',      enabled     = 'enabled',
+}
+
 local function resolve(itemName, cfg)
     local cat = Categories[cfg.category] or Categories.default
-    return {
+    local it = {
         item        = itemName,
         category    = cfg.category or 'misc',
         priceIndex  = cfg.priceIndex,
         targetStock = cfg.targetStock or 100,
-        elasticity  = cfg.elasticity  or cat.elasticity,
-        minMult     = cfg.minMult     or cat.minMult,
-        maxMult     = cfg.maxMult     or cat.maxMult,
-        halfLifeMin = cfg.halfLifeMin or cat.halfLifeMin,
-        spread      = cfg.spread      or cat.spread,
         npcSellable = cfg.npcSellable ~= false,
         npcBuyable  = cfg.npcBuyable  ~= false,
         pinned      = cfg.pinned == true,
         enabled     = cfg.enabled ~= false,
     }
+    for _, key in ipairs(INHERITED) do
+        it[key] = cfg[key] or cat[key]
+    end
+    return it
 end
 
 --- config/items.lua を読み込み、DB の状態を重ねる
@@ -61,22 +73,13 @@ function DynState.load()
         })
     end
 
-    local rows = DynDb.query('SELECT * FROM dyn_items') or {}
-    for _, row in ipairs(rows) do
+    -- DB 側は運用中に管理者が触る想定なので、config より DB を優先する
+    for _, row in ipairs(DynDb.query('SELECT * FROM dyn_items') or {}) do
         local it = items[row.item]
         if it then
-            it.targetStock = tonumber(row.target_stock) or it.targetStock
-            it.elasticity  = tonumber(row.elasticity)   or it.elasticity
-            it.minMult     = tonumber(row.min_mult)     or it.minMult
-            it.maxMult     = tonumber(row.max_mult)     or it.maxMult
-            it.halfLifeMin = tonumber(row.half_life_min) or it.halfLifeMin
-            it.spread      = tonumber(row.npc_spread)   or it.spread
-            it.priceIndex  = tonumber(row.price_index)  or it.priceIndex
-            it.npcSellable = row.npc_sellable == 1
-            it.npcBuyable  = row.npc_buyable == 1
-            it.pinned      = row.pinned == 1
-            it.enabled     = row.enabled == 1
-            it.stock       = it.targetStock
+            for col, field in pairs(DB_NUMBERS) do it[field] = tonumber(row[col]) or it[field] end
+            for col, field in pairs(DB_FLAGS)   do it[field] = row[col] == 1 end
+            it.stock = it.targetStock
         end
     end
 
@@ -141,6 +144,16 @@ function DynState.addStock(itemName, delta)
     return true
 end
 
+--- 品目を有効／無効にする。ブリッジの起動時検証（§10.3）が使う。
+--- 実行時だけの状態で永続化しない。環境が変われば判定も変わるので、
+--- 起動のたびに突き合わせ直すほうが正しい。
+function DynState.setEnabled(itemName, enabled)
+    local it = items[itemName]
+    if not it then return false end
+    it.enabled = enabled and true or false
+    return true
+end
+
 function DynState.setMatCost(itemName, cost)
     local it = items[itemName]
     if not it then return false end
@@ -161,7 +174,11 @@ function DynState.setEcon(key, value)
     end
 end
 
-function DynState.categoryMult(category) return catMult[category] or 1.0 end
+--- カテゴリ別の物価倍率（§4.5）。季節・イベント用に config から与える
+function DynState.categoryMult(category)
+    local m = Config.PriceLevel.categoryMult
+    return m and m[category] or 1.0
+end
 
 --- 変化した行だけ書き戻す
 function DynState.persist()

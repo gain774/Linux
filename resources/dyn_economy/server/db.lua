@@ -24,14 +24,6 @@ function DynDb.query(sql, params)
     return guard(function() return MySQL.query.await(sql, params) end)
 end
 
-function DynDb.single(sql, params)
-    return guard(function() return MySQL.single.await(sql, params) end)
-end
-
-function DynDb.scalar(sql, params)
-    return guard(function() return MySQL.scalar.await(sql, params) end)
-end
-
 function DynDb.execute(sql, params)
     return guard(function() return MySQL.update.await(sql, params) end)
 end

@@ -13,6 +13,7 @@ shared_scripts {
 server_scripts {
     'server/txflow.lua',
     'server/vorp.lua',
+    'server/compat.lua',
     'server/bridge.lua',
 }
 

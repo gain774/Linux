@@ -36,8 +36,6 @@ function DynRecipes.load()
     return n
 end
 
-function DynRecipes.all() return recipes end
-
 --- 全アイテムの原価を計算して DynState に書き戻す
 function DynRecipes.refresh()
     if not Config.Recipes.enabled then return 0 end

@@ -75,4 +75,18 @@ exports('VoidCommit', function(committed)
     return { ok = done }
 end)
 
+--- 扱っている品目名の一覧。起動時の突き合わせに使う
+exports('ListItems', function()
+    local list = {}
+    for name in pairs(DynState.all()) do list[#list + 1] = name end
+    table.sort(list)
+    return list
+end)
+
+--- 品目の有効／無効を切り替える。
+--- インベントリ側に存在しない品を無効化するなど、環境に合わせた除外に使う
+exports('SetItemEnabled', function(item, enabled)
+    return DynState.setEnabled(item, enabled)
+end)
+
 exports('IsReady', function() return DynState.count() > 0 end)

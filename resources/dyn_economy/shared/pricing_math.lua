@@ -56,7 +56,6 @@ local function curveIntegral(p0, targetStock, elasticity, a, b)
     local c = p0 * (targetStock ^ elasticity) / (1 - elasticity)
     return c * (b ^ (1 - elasticity) - a ^ (1 - elasticity))
 end
-M.curveIntegral = curveIntegral
 
 --- 上下限クランプ込みの定積分（§4.2 + §4.1 のクランプ）
 ---

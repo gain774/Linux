@@ -74,19 +74,19 @@ local function newAdapter(opts)
         calls = {},
         fail  = opts.fail or {},
     }
-    local function log(what) a.calls[#a.calls + 1] = what end
+    local function log(what, silent) a.calls[#a.calls + 1] = what; a.silent = silent end
     a.getIdentifier = function() return opts.identifier ~= false and 'char1' or nil end
     a.getMoney      = function() return a.money end
     a.addMoney      = function(_, amt) log('addMoney'); a.money = a.money + amt; return true end
     a.removeMoney   = function(_, amt) log('removeMoney'); a.money = a.money - amt; return true end
     a.getItemCount  = function(_, item) return a.items[item] or 0 end
-    a.addItem       = function(_, item, qty)
-        log('addItem')
+    a.addItem       = function(_, item, qty, _meta, silent)
+        log('addItem', silent)
         if a.fail.addItem then return false end
         a.items[item] = (a.items[item] or 0) + qty; return true
     end
-    a.removeItem    = function(_, item, qty)
-        log('removeItem')
+    a.removeItem    = function(_, item, qty, _meta, silent)
+        log('removeItem', silent)
         if a.fail.removeItem then return false end
         a.items[item] = (a.items[item] or 0) - qty; return true
     end
@@ -118,6 +118,8 @@ do
     near(stockOf('corn'), before + 20, '仮想在庫が 20 増える')
     ok(a.calls[1] == 'removeItem' and a.calls[2] == 'addMoney',
        '現物を引いてから入金する（逆だと引けなかったときに金だけ増える）')
+    ok(a.silent ~= true,
+       '通常の売買ではインベントリイベントを抑止しない（他スクリプトから取引が見える）')
 end
 
 group('売却: 現物が足りない')
@@ -150,6 +152,8 @@ do
     ok(r == nil and err == 'boom', '確定失敗のエラーがそのまま返る')
     ok(a.items.corn == 50, '引いた現物が戻っている')
     near(a.money, 100, '入金していない')
+    ok(a.calls[#a.calls] == 'addItem' and a.silent == true,
+       '巻き戻しの返却はインベントリイベントを抑止する（他スクリプトの二重カウント防止）')
 end
 
 group('売却: 扱えない品目')

@@ -1,5 +1,5 @@
 --[[
-  VORP アダプタ（設計ドキュメント §10.1）
+  VORP アダプタ（設計ドキュメント §10.2）
 
   確認に使ったバージョン: vorp_core 3.3 / vorp_inventory 4.5
 
@@ -96,12 +96,20 @@ function VorpAdapter.removeMoney(source, amount)
     return true
 end
 
-function VorpAdapter.addItem(source, item, qty, metadata)
-    return exports.vorp_inventory:addItem(source, item, qty, meta(metadata)) == true
+--[[
+  silent = true のとき vorp_inventory の第 6 引数 `allow` に true を渡し、
+  OnItemCreated / OnItemRemoved の発火を抑止する。
+
+  巻き戻し（決済に失敗して現物を返す・取り上げる）で使う。通常の売買では発火させる
+  ――普通の店と同じ挙動にしないと、クエスト進行やログを取っている他スクリプトから
+  取引が見えなくなる。逆に巻き戻しで発火させると、それらが二重にカウントする。
+]]
+function VorpAdapter.addItem(source, item, qty, metadata, silent)
+    return exports.vorp_inventory:addItem(source, item, qty, meta(metadata), nil, silent == true) == true
 end
 
-function VorpAdapter.removeItem(source, item, qty, metadata)
-    return exports.vorp_inventory:subItem(source, item, qty, meta(metadata)) == true
+function VorpAdapter.removeItem(source, item, qty, metadata, silent)
+    return exports.vorp_inventory:subItem(source, item, qty, meta(metadata), nil, silent == true) == true
 end
 
 function VorpAdapter.getItemCount(source, item, metadata)
