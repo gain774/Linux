@@ -36,6 +36,10 @@ echo "== 店舗の検証 =="
 "$LUA" tests/shop.lua
 echo
 
+echo "== 資産センサスの統計 =="
+"$LUA" tests/census.lua
+echo
+
 echo "== 国庫の記帳 =="
 "$LUA" tests/treasury.lua
 echo
@@ -46,3 +50,7 @@ echo
 
 echo "== スキーマの実機検証（DB があれば） =="
 ./tests/schema_check.sh
+echo
+
+echo "== センサスの SQL 実機検証（DB があれば） =="
+./tests/census_sql_check.sh

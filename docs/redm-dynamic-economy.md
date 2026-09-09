@@ -499,13 +499,24 @@ Config.Economy = {
 ```lua
 Config.Census = {
   onStartup      = true,
-  startupDelay   = 60,      -- 他リソースの読み込みと competing しないよう 60 秒待つ
-  daily          = true,
-  include        = { 'cash', 'bank' },   -- 集計に含める財布（§13 の確認事項）
+  startupDelay   = 60,      -- 他リソースの読み込みと競合しないよう待つ
+  intervalHours  = 24,
+  activeDays     = 14,      -- 統計の対象にするログイン期間
   outlierMAD     = 5.0,     -- 中央値 + 5×MAD を超えたら外れ値
   driftTolerance = 0.25,    -- 総額のズレ許容 ±25%
+
+  -- VORP の実際のテーブルに合わせてある
+  base    = { table = 'characters', owner = 'charidentifier',
+              column = 'money', lastLogin = 'LastLogin' },
+  wallets = { { table = 'bank_users', owner = 'charidentifier', column = 'money' } },
+
+  basket = { 'corn', 'wheat', 'animal_meat', 'coal', 'bread' },
 }
 ```
+
+**財布を 1 つでも取りこぼすと総額が合わず、drift が毎回異常判定になる。**
+vorp_banking は所持金を `bank_users` に置くので `wallets` に入れる必要がある。
+テーブルが存在しない構成では黙って飛ばし、一度だけ警告を出す。
 
 #### 外れ値の扱い — 「除外はするが、無かったことにはしない」
 
@@ -561,6 +572,11 @@ hold の理由: ズレたまま較正すると、複製バグや管理者の大�
 
 - 金額の一覧取得は 1 クエリ。中央値と MAD は SQL でやりにくいので Lua 側で計算する
   （1 万件でもソート込みで数十 ms なので問題にならない）
+- `LastLogin` が NULL のキャラクターは比較結果も NULL になるので非アクティブ扱いになる。
+  意図した挙動で、`tests/census_sql_check.sh` が実テーブルで確認している
+- **MAD が 0 のとき（過半数が同額）は外れ値なしとして扱う。** そうしないと閾値が
+  中央値そのものになり、わずかでも多い人が全員外れ値になってしまう
+- キャラクターが存在しない銀行残高は、統計には入れず総額にだけ足す
 - 起動直後はフレームワークの DB 接続が確立していないことがあるので `startupDelay` を必ず入れる
 - センサス結果は `dyn_econ_snapshot` に追記し、前回値との差分を残す
 
@@ -649,14 +665,19 @@ CREATE TABLE IF NOT EXISTS dyn_econ_config (
 );
 
 CREATE TABLE IF NOT EXISTS dyn_econ_snapshot (
-  snapshot_at    DATETIME NOT NULL PRIMARY KEY,
-  money_total    DECIMAL(18,2) NOT NULL,
-  money_median   DECIMAL(14,2) NOT NULL,          -- 直近14日ログイン者のみ
-  money_p90      DECIMAL(14,2) NOT NULL,
-  active_players INT NOT NULL,
-  basket_price   DECIMAL(14,4) NOT NULL,
-  currency_scale DECIMAL(14,6) NOT NULL,
-  median_hourly  DECIMAL(14,4) NULL               -- 実測の中央時給（W_lo/W_hi の元）
+  snapshot_at    DATETIME      NOT NULL PRIMARY KEY,
+  money_total    DECIMAL(18,2) NOT NULL,          -- 外れ値も含む。これがマネーサプライ
+  money_median   DECIMAL(14,2) NULL,              -- アクティブかつ外れ値を除いた統計
+  money_p90      DECIMAL(14,2) NULL,
+  money_p99      DECIMAL(14,2) NULL,
+  characters     INT           NOT NULL DEFAULT 0,
+  active_players INT           NOT NULL DEFAULT 0,
+  outliers       INT           NOT NULL DEFAULT 0,
+  basket_price   DECIMAL(14,4) NULL,
+  currency_scale DECIMAL(14,6) NOT NULL DEFAULT 1,
+  expected_total DECIMAL(18,2) NULL,              -- 前回 + Mod 経由の純増
+  drift          DECIMAL(10,4) NULL,
+  held           TINYINT(1)    NOT NULL DEFAULT 0 -- この回で較正を保留したか
 );
 
 CREATE TABLE IF NOT EXISTS dyn_item_yield (
@@ -1321,6 +1342,8 @@ local res = exports['dyn_economy_bridge']:BuyFromNpc(source, item, qty, shopId)
 - Phase 1〜2 … `resources/dyn_economy`（[README](../resources/dyn_economy/README.md)）
 - Phase 3 … `resources/dyn_economy_bridge`（[README](../resources/dyn_economy_bridge/README.md)）と
   `resources/dyn_shop`。VORP アダプタ・決済フロー・NPC 店舗まで実装済み
+- Phase 5.6 … `dyn_economy` の `shared/census_math.lua` と `server/census.lua`。
+  資産センサスと総額の健全性チェック。初期所持金の導出（§6.3）はまだ
 - Phase 5.7 … `resources/dyn_treasury`。税の記帳と国庫。補助金（§9.3〜9.5）は未実装
 - サーバー一式 … `server/`（[README](../server/README.md)）。artifacts の取得から DB 作成、
   リソース配置、systemd までを `setup.sh` にまとめてある
@@ -1335,7 +1358,7 @@ FiveM を起動せずに走るテストが `tests/` にあり、`./tests/run_all
 | 4 | レシピインポータと原価計算（§5） | `mat_cost` が埋まり、下限価格が効く |
 | 5 | 価格履歴の 1 時間バケット集計、UI の価格変動表示 | 直近推移が見える |
 | 5.5 | §6.2 の bootstrap 較正とドライラン。既存店舗の価格表から `currency_scale` を逆算 | `/dyn_calibrate --dry-run` が差分表を出す |
-| 5.6 | 起動時の資産センサスと総額健全性チェック（§6.4）、初期所持金の導出（§6.3） | 起動ログに中央値・外れ値・drift が出る |
+| 5.6 ✅ | 起動時の資産センサスと総額健全性チェック（§6.4） | 起動ログに中央値・外れ値・drift が出る。初期所持金の導出（§6.3）は未実装 |
 | 5.7 ✅ | 税の記帳と国庫（§9.1 / §9.2）。補助金はまだ出さない | 国庫に税が貯まり `/treasury` で内訳が見える |
 | 6 | 委託所（§8） | 出品・購入・返却・手数料が動作し `dyn_market_trades` に残る |
 | 7 | 日次スナップショットと `dyn_item_yield` の集計（§6.5 / §6.6）。較正はまだ適用しない | 2 週間分のデータが溜まり、時給分布が見える |

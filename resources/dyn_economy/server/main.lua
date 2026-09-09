@@ -59,6 +59,20 @@ CreateThread(function()
             Wait(60 * 60000)
         end
     end)
+
+    -- 資産センサス（§6.4）。起動直後は他リソースの読み込みと競合するので待つ
+    if Config.Census.enabled then
+        CreateThread(function()
+            if Config.Census.onStartup then
+                Wait((Config.Census.startupDelay or 60) * 1000)
+                DynCensus.run()
+            end
+            while true do
+                Wait((Config.Census.intervalHours or 24) * 3600000)
+                DynCensus.run()
+            end
+        end)
+    end
 end)
 
 AddEventHandler('onResourceStop', function(resource)

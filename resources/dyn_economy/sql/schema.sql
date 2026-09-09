@@ -82,3 +82,30 @@ CREATE TABLE IF NOT EXISTS dyn_econ_config (
   v           DECIMAL(18,6) NOT NULL,
   updated_at  DATETIME      NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS dyn_econ_snapshot (
+  snapshot_at    DATETIME      NOT NULL PRIMARY KEY,
+  money_total    DECIMAL(18,2) NOT NULL,
+  money_median   DECIMAL(14,2) NULL,
+  money_p90      DECIMAL(14,2) NULL,
+  money_p99      DECIMAL(14,2) NULL,
+  characters     INT           NOT NULL DEFAULT 0,
+  active_players INT           NOT NULL DEFAULT 0,
+  outliers       INT           NOT NULL DEFAULT 0,
+  basket_price   DECIMAL(14,4) NULL,
+  currency_scale DECIMAL(14,6) NOT NULL DEFAULT 1,
+  expected_total DECIMAL(18,2) NULL,
+  drift          DECIMAL(10,4) NULL,
+  held           TINYINT(1)    NOT NULL DEFAULT 0
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS dyn_wealth_outlier (
+  detected_at DATETIME      NOT NULL,
+  identifier  VARCHAR(64)   NOT NULL,
+  amount      DECIMAL(16,2) NOT NULL,
+  median_ref  DECIMAL(16,2) NOT NULL,
+  mad_score   DECIMAL(10,3) NOT NULL,
+  reviewed    TINYINT(1)    NOT NULL DEFAULT 0,
+  PRIMARY KEY (detected_at, identifier),
+  INDEX idx_reviewed (reviewed, detected_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

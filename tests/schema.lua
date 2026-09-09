@@ -39,6 +39,7 @@ ok(withSemicolon == 0, '文の中に ; が残らない')
 local expected = {
     'dyn_items', 'dyn_item_state', 'dyn_npc_tx', 'dyn_recipes',
     'dyn_recipe_inputs', 'dyn_price_history', 'dyn_econ_config',
+    'dyn_econ_snapshot', 'dyn_wealth_outlier',
 }
 for _, t in ipairs(expected) do
     local found = false

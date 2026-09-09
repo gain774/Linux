@@ -49,7 +49,7 @@ for entry in $SCHEMAS; do
 done
 
 echo "== 4. テーブルと主要な列を確認 =="
-EXPECTED="dyn_econ_config dyn_item_state dyn_items dyn_npc_tx dyn_price_history dyn_recipe_inputs dyn_recipes dyn_treasury_ledger"
+EXPECTED="dyn_econ_config dyn_econ_snapshot dyn_item_state dyn_items dyn_npc_tx dyn_price_history dyn_recipe_inputs dyn_recipes dyn_treasury_ledger dyn_wealth_outlier"
 ACTUAL=$($MYSQL -N -B "$DB" -e "SHOW TABLES" | sort | tr '\n' ' ' | sed 's/ $//')
 if [ "$ACTUAL" != "$(echo $EXPECTED)" ]; then
     echo "FAIL: テーブルが一致しません"
@@ -57,11 +57,12 @@ if [ "$ACTUAL" != "$(echo $EXPECTED)" ]; then
     echo "  実際: $ACTUAL"
     exit 1
 fi
-echo "テーブル 8 件 OK"
+echo "テーブル 10 件 OK"
 
 for col in "dyn_npc_tx price_breakdown" "dyn_npc_tx voided" "dyn_items price_index" \
            "dyn_items pinned" "dyn_item_state mat_cost" \
-           "dyn_treasury_ledger balance_after" "dyn_treasury_ledger ref_id"; do
+           "dyn_treasury_ledger balance_after" "dyn_treasury_ledger ref_id" \
+           "dyn_econ_snapshot drift" "dyn_econ_snapshot held" "dyn_wealth_outlier mad_score"; do
     set -- $col
     if ! $MYSQL -N -B "$DB" -e "SHOW COLUMNS FROM \`$1\` LIKE '$2'" | grep -q "$2"; then
         echo "FAIL: $1.$2 がありません"; exit 1

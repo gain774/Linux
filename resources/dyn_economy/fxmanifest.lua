@@ -8,6 +8,7 @@ version '0.1.0'
 
 shared_scripts {
     'shared/pricing_math.lua',
+    'shared/census_math.lua',
     'config/config.lua',
     'config/categories.lua',
     'config/items.lua',
@@ -18,6 +19,7 @@ server_scripts {
     'server/db.lua',
     'server/state.lua',
     'server/recipes.lua',
+    'server/census.lua',
     'server/pricing.lua',
     'server/ledger.lua',
     'server/exports.lua',

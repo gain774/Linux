@@ -40,3 +40,36 @@ Config.Db = {
     autoMigrate = true,       -- 起動時に sql/schema.sql を流す
     persistSec  = 60,         -- 仮想在庫を DB に書き戻す間隔（秒）
 }
+
+--[[
+  資産センサス（§6.4）。起動時と定期的にサーバー全体の所持金を棚卸しする。
+
+  国庫（dyn_treasury）は誰の財布にも入っていないので、ここには現れない。
+  流通量と国庫を分けて扱うという設計（§9.2）が自然に満たされる。
+]]
+Config.Census = {
+    enabled       = true,
+    onStartup     = true,
+    startupDelay  = 60,     -- 他リソースの読み込みと競合しないよう待つ（秒）
+    intervalHours = 24,
+    activeDays    = 14,     -- 直近この日数にログインした人を統計の対象にする
+    outlierMAD    = 5.0,    -- 中央値 + この係数 × MAD を超えたら外れ値
+    driftTolerance = 0.25,  -- 総額のズレの許容。超えたら長期較正を保留する
+
+    -- キャラクターと現金。VORP の標準構成に合わせてある
+    base = {
+        table = 'characters', owner = 'charidentifier',
+        column = 'money',     lastLogin = 'LastLogin',
+    },
+
+    -- 追加の財布。テーブルが無ければ黙って飛ばす。
+    -- vorp_banking は所持金を bank_users に置くので、これを合算しないと
+    -- 総額が常に合わず、drift が毎回異常判定になる。
+    wallets = {
+        { table = 'bank_users', owner = 'charidentifier', column = 'money' },
+    },
+
+    -- 物価の基準バスケット。時系列で比べられるよう固定した品目にする。
+    -- 空なら扱っている全品目から作る（品目を足すたびに基準が変わるので推奨しない）。
+    basket = { 'corn', 'wheat', 'animal_meat', 'coal', 'bread' },
+}
