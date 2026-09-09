@@ -69,6 +69,16 @@ dyn_market/                       -- プレイヤー間取引の仲介（委託�
 └── sql/
     └── schema.sql
 
+dyn_shop/                         -- NPC 店舗（価格は持たない。扱う品目と座標だけ）
+├── fxmanifest.lua
+├── config.lua                    -- 店舗・座標・営業時間・取扱品目
+├── server/
+│   ├── guard.lua                 -- 距離・営業時間・取扱品目・連打の検証（純粋関数）
+│   └── main.lua                  -- ブリッジ経由の売買
+├── client/
+│   └── main.lua                  -- ブリップ・プロンプト・メニュー
+└── （SQL 無し）
+
 dyn_guilds/                       -- 国庫・税・組合・補助金（§9、既定 OFF）
 ├── fxmanifest.lua
 ├── server/
@@ -1284,8 +1294,10 @@ local res = exports['dyn_economy_bridge']:BuyFromNpc(source, item, qty, shopId)
 
 **実装状況**:
 - Phase 1〜2 … `resources/dyn_economy`（[README](../resources/dyn_economy/README.md)）
-- Phase 3 … `resources/dyn_economy_bridge`（[README](../resources/dyn_economy_bridge/README.md)）。
-  VORP アダプタと決済フローは実装済み。残るのは既存店舗リソース側の呼び出し差し替え
+- Phase 3 … `resources/dyn_economy_bridge`（[README](../resources/dyn_economy_bridge/README.md)）と
+  `resources/dyn_shop`。VORP アダプタ・決済フロー・NPC 店舗まで実装済み
+- サーバー一式 … `server/`（[README](../server/README.md)）。artifacts の取得から DB 作成、
+  リソース配置、systemd までを `setup.sh` にまとめてある
 
 FiveM を起動せずに走るテストが `tests/` にあり、`./tests/run_all.sh` で実行できる。
 
@@ -1293,7 +1305,7 @@ FiveM を起動せずに走るテストが `tests/` にあり、`./tests/run_all
 |---|---|---|
 | 1 ✅ | スキーマ作成、`dyn_items` の初期投入（既存店舗の固定価格から自動生成） | テーブルが作られ、全取扱品に行がある |
 | 2 ✅ | `pricing.lua`（§4）＋ exports（§10）。既存店舗はまだ触らない | `/dyn_quote <item> <qty>` で価格が返る |
-| 3 ⏳ | ブリッジ経由で既存 NPC 店舗を `Quote/Commit` に置換 | ブリッジは実装済み。店舗リソース側の差し替えが残り |
+| 3 ✅ | ブリッジと NPC 店舗（`dyn_shop`）。既存店舗がある場合はそちらから `Quote/Commit` を呼ぶ | 売買が動的価格で通り `dyn_npc_tx` に記録される |
 | 4 | レシピインポータと原価計算（§5） | `mat_cost` が埋まり、下限価格が効く |
 | 5 | 価格履歴の 1 時間バケット集計、UI の価格変動表示 | 直近推移が見える |
 | 5.5 | §6.2 の bootstrap 較正とドライラン。既存店舗の価格表から `currency_scale` を逆算 | `/dyn_calibrate --dry-run` が差分表を出す |
@@ -1326,16 +1338,18 @@ Phase 5.7（税の記帳）だけは早めに入れておくとよい。挙動�
 1. ~~**フレームワーク**~~ — **VORP に確定**（vorp_core 3.3 / vorp_inventory 4.5）。ブリッジ実装済み
 2. ~~**インベントリ**~~ — vorp_inventory。metadata 省略時は `{}` ではなく `nil` を渡す必要がある
    （`{}` は Lua では truthy なので「メタデータ一致検索」に入り常に 0 件になる）
-3. **既存の NPC 店舗リソース名**と、現在の固定価格表の所在（Lua ハードコードか DB か）
-   — これが分かれば §6.2 の bootstrap 較正を実データで回し、`price_index` を生成できる
+3. ~~**既存の NPC 店舗リソース名**~~ — 既存の店舗が無いため `dyn_shop` を新規に作った。
+   既存店舗を後から入れる場合は §10.2 のとおりブリッジを呼ぶ形にする。
+   なお §6.2 の bootstrap 較正は既存の価格表を入力に使うので、
+   価格表が無い今は `Config.Anchor`（基準アイテム 1 つの希望価格）から決める
 4. **既存 DB に売買ログがあるか** — あれば初期の `virtual_stock` をそこから逆算して滑らかに移行できる
 5. **通貨** — 単一通貨か、金塊など第二通貨があるか
 6. **プレイ時間の取得手段** — 較正（§6.6）は「プレイ時間あたりの獲得量」が要るので、
    フレームワークが playtime を持っているか、なければ接続ログを自前で取る必要がある
 7. **全キャラの所持金を集計できるか** — 銀行残高が別テーブル・別リソースの場合、
    §6.5 のマネーサプライ計算にどこまで含めるかを決める（現金のみ / 現金＋銀行 / ＋資産）
-8. **既存店舗の RandomPrices / DynamicStore を落としてよいか** — vorp_stores を使っている場合、
-   両方 false にしないと価格と在庫を二重に制御することになる（§10.3）
+8. **`config/items.lua` と `dyn_shop/config.lua` の中身** — 現在はサンプル。
+   実際に扱うアイテム名（サーバーの `items` テーブルに存在するもの）と店舗の座標に差し替える必要がある
 9. **狙っている成長速度** — §7 を使うなら「○日でだいたい△」の想定値。
    まだ無ければ Phase 10 の `--dry-run` で 2 週間実測を眺めてから決めればよい
 10. **Mod 外の収入源** — 給料・クエスト報酬・強盗など。§7.6 の coverage に直結する

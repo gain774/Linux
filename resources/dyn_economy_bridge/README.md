@@ -144,7 +144,11 @@ oxmysql は必ず存在するので、ドライバの衝突は無い。
 
 `identifier` には `charIdentifier`（キャラクター ID）を使う。
 1 アカウントで複数キャラを持つ運用があり、財布が別なら経済上も別人として扱うのが正しい。
-アカウント単位で見たいときのために `GetAdapter().getAccountIdentifier(source)` を用意してある。
+アカウント単位で見たいときのために `exports['dyn_economy_bridge']:GetAccountIdentifier(source)` がある。
+
+所持金や所持数を店舗側から参照したい場合も、アダプタのテーブルを受け取るのではなく
+個別の export を使う（`GetItemCount` / `GetMoney` / `GetIdentifier`）。
+export の戻り値は msgpack でシリアライズされるので、**テーブルに入れた関数は落ちて nil になる。**
 
 ## テスト
 

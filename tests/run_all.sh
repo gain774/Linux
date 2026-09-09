@@ -30,3 +30,15 @@ echo
 
 echo "== 他リソースとの互換 =="
 "$LUA" tests/compat.lua
+echo
+
+echo "== 店舗の検証 =="
+"$LUA" tests/shop.lua
+echo
+
+echo "== SQL マイグレーションの分割 =="
+"$LUA" tests/schema.lua
+echo
+
+echo "== スキーマの実機検証（DB があれば） =="
+./tests/schema_check.sh

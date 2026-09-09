@@ -98,8 +98,29 @@ exports('GetItemInfo', function(item)
     return exports.dyn_economy:GetItemInfo(item)
 end)
 
---- 店舗リソースが所持金や現物を直接触りたい場合に使う
-exports('GetAdapter', function() return Adapter end)
+--[[
+  店舗リソースが所持金や現物を参照したいとき用の受け渡し。
+
+  アダプタのテーブルをそのまま返してはいけない。export の戻り値は msgpack で
+  シリアライズされるので関数が落ち、呼び出し側では nil になる。
+  必要な操作を 1 つずつ export として出す。
+]]
+exports('GetItemCount', function(source, item)
+    return Adapter and Adapter.getItemCount(source, item) or 0
+end)
+
+exports('GetMoney', function(source)
+    return Adapter and Adapter.getMoney(source) or 0
+end)
+
+exports('GetIdentifier', function(source)
+    return Adapter and Adapter.getIdentifier(source) or nil
+end)
+
+--- 分析用。同一アカウントの複数キャラをまとめて見たいときに使う
+exports('GetAccountIdentifier', function(source)
+    return Adapter and Adapter.getAccountIdentifier(source) or nil
+end)
 
 exports('IsReady', function()
     return Adapter ~= nil and Adapter.isReady() and exports.dyn_economy:IsReady()
