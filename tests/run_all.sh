@@ -36,6 +36,10 @@ echo "== 店舗の検証 =="
 "$LUA" tests/shop.lua
 echo
 
+echo "== レシピ取り込み =="
+"$LUA" tests/recipes_import.lua
+echo
+
 echo "== 資産センサスの統計 =="
 "$LUA" tests/census.lua
 echo

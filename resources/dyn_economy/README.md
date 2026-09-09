@@ -8,7 +8,10 @@ RedM 向けの需給連動 価格エンジン。設計は [`docs/redm-dynamic-ec
 | | |
 |---|---|
 | 実装済み | 仮想在庫モデル（§4.1〜4.3）、まとめ売りの積分価格（§4.2）、物価水準レイヤー（§4.5）、価格スタック（§4.6）、レシピ原価による下限（§5）、exports（§10）、アンカーからの `currency_scale` 導出（§6.2 B） |
-| 未実装 | レシピインポータ（Phase 4）、自動較正（§6）、成長曲線（§7）、委託所（§8）、国庫・組合（§9） |
+| 実装済み（続き） | レシピ取り込み（§5.1）、資産センサスと総額の健全性チェック（§6.4） |
+| 未実装 | 自動較正（§6.2〜6.7）、成長曲線（§7）、委託所（§8）、組合と補助金（§9.3〜9.5） |
+
+税の記帳と国庫（§9.1〜9.2）は別リソース [`dyn_treasury`](../dyn_treasury) にある。
 
 **フレームワーク接続は [`dyn_economy_bridge`](../dyn_economy_bridge/README.md) が担当する**（VORP）。
 このリソース単体では所持金もインベントリも触らない。
@@ -41,6 +44,8 @@ RedM 向けの需給連動 価格エンジン。設計は [`docs/redm-dynamic-ec
 /dyn_cost <item>                      レシピ原価と、そこから決まる買取下限
 /dyn_setstock <item> <値>             仮想在庫を直接いじる（動作確認用）
 /dyn_econ [key] [値]                  currency_scale / cpi_mult / income_mult の確認と設定
+/dyn_import_recipes [--apply]         vorp_crafting からレシピを取り込む（既定はドライラン）
+/dyn_census [--accept]                資産センサスを実行 / 較正の保留を解除
 /dyn_reload                           config と DB を読み直す
 ```
 

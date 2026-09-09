@@ -66,6 +66,62 @@ function DynRecipes.refresh()
     return n
 end
 
+--[[
+  クラフトリソースからレシピを取り込む（§5.1）。
+
+  既定はドライラン。差分を見てから適用する。
+  自動では走らせない ── レシピ表は変わりにくいのに、取り込みを間違えると
+  原価が狂って全品の下限価格が動く。起動のたびに黙って走る種類の処理ではない。
+]]
+function DynRecipes.import(opts)
+    opts = opts or {}
+    local resource = opts.resource or RecipeImport.SOURCE
+
+    if GetResourceState(resource) == 'missing' then
+        return nil, ('%s が見つかりません'):format(resource)
+    end
+
+    local raw = LoadResourceFile(resource, 'config.lua')
+    if not raw then
+        return nil, ('%s/config.lua を読めませんでした'):format(resource)
+    end
+
+    local recipes, skipped = RecipeImport.parseVorpCrafting(raw)
+    if not recipes then
+        return nil, ('解析に失敗しました: %s'):format(tostring(skipped))
+    end
+
+    local result = RecipeImport.summarize(recipes, skipped)
+    result.recipes = recipes
+    result.skippedList = skipped
+    result.applied = false
+
+    if not opts.apply then return result end
+    if not DynDb.isReady() then return nil, 'DB がありません' end
+
+    -- 取り込み元ごとに入れ替える。他の source で手で入れたレシピは残す。
+    -- dyn_recipe_inputs は外部キーの ON DELETE CASCADE で一緒に消える。
+    DynDb.execute('DELETE FROM dyn_recipes WHERE source = ?', { resource })
+
+    for _, r in ipairs(recipes) do
+        local id = DynDb.insert(
+            'INSERT INTO dyn_recipes (output_item, output_qty, source) VALUES (?, ?, ?)',
+            { r.outputItem, r.outputQty, resource })
+        if id then
+            for _, i in ipairs(r.inputs) do
+                DynDb.execute(
+                    'INSERT INTO dyn_recipe_inputs (recipe_id, item, qty) VALUES (?, ?, ?)',
+                    { id, i.item, i.qty })
+            end
+        end
+    end
+
+    result.applied = true
+    result.loaded  = DynRecipes.load()
+    result.costed  = DynRecipes.refresh()
+    return result
+end
+
 function DynRecipes.costOf(itemName)
     local it = DynState.get(itemName)
     return it and it.matCost or nil

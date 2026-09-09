@@ -387,18 +387,33 @@ Config.PriceLevel = {
 
 ### 5.1 レシピの取り込み
 
-各クラフト系リソースの Lua 定義から `output_item / output_qty / inputs` を抽出し、
-`dyn_recipes` / `dyn_recipe_inputs` に投入するインポータを用意する。
-取り込み対象の候補（フレームワーク確定後に確定）:
+`vorp_crafting` の `config.lua` をテキストとして読み、**サンドボックスで評価**して
+`Config.Crafting` を取り出す。他リソースの `shared_script` は直接参照できないので、
+これが実用的な方法。評価するのは他人の設定ファイルなので、環境は空のテーブルから作り
+`io` / `os` / `require` は渡さない（`vector3` など設定でよく使うものだけスタブする）。
 
-| フレームワーク | 想定リソース |
+**起動時に自動実行しない。** `/dyn_import_recipes` で明示的に走らせ、
+既定はドライラン、`--apply` で初めて反映する。レシピ表は変わりにくいのに、
+取り込みを間違えると原価が狂って全品の下限価格が動くので、
+起動のたびに黙って走ってよい種類の処理ではない。
+
+#### 取り込まないものと、その理由
+
+| 条件 | 理由 |
 |---|---|
-| RSGCore | `rsg-crafting`, `rsg-blacksmith`, `rsg-farming`, `rsg-cooking` |
-| VORP | `vorp_crafting`, `vorp_inventory` の item 定義 |
-| RedEM:RP | `redemrp_crafting` |
+| `Type = 'weapon'` | 武器は `loadout` 側で管理され `addItem` / `subItem` が効かない |
+| `UseCurrencyMode = true` | 素材ではなく金で買うので素材原価にならない |
+| `Reward` が複数 | 入力の原価をどちらにどれだけ按分するか決められない。黙って全額を片方に付けると下限価格が過大になる |
+| `TakeItems = false` | 何も消費しないので原価が無い |
+| 消費される素材が 0 | 全部が道具（`take = false`）のレシピ |
+| 同じ出力の 2 本目 | 最初のものだけ採り、残りは報告する |
 
-インポータは起動時に自動実行ではなく、管理コマンド（`/dyn_import_recipes`）で明示的に走らせ、
-差分を出力してから反映する。レシピ表は変わりにくいので毎回パースする必要はない。
+`Items[i].take = false` は道具（消費されない）なので、その素材は原価に入れない。
+同じ素材が複数行に分かれている場合は足し合わせる。
+
+取り込み元は `dyn_recipes.source` で区別する。再取り込みはその source の行だけを
+入れ替えるので、手で入れたレシピは残る（素材は外部キーの `ON DELETE CASCADE` で
+一緒に消えるため孤児にならない）。
 
 ### 5.2 原価の再帰計算
 
@@ -1342,6 +1357,7 @@ local res = exports['dyn_economy_bridge']:BuyFromNpc(source, item, qty, shopId)
 - Phase 1〜2 … `resources/dyn_economy`（[README](../resources/dyn_economy/README.md)）
 - Phase 3 … `resources/dyn_economy_bridge`（[README](../resources/dyn_economy_bridge/README.md)）と
   `resources/dyn_shop`。VORP アダプタ・決済フロー・NPC 店舗まで実装済み
+- Phase 4 … `dyn_economy` の `server/recipes_import.lua`。`vorp_crafting` からの取り込み
 - Phase 5.6 … `dyn_economy` の `shared/census_math.lua` と `server/census.lua`。
   資産センサスと総額の健全性チェック。初期所持金の導出（§6.3）はまだ
 - Phase 5.7 … `resources/dyn_treasury`。税の記帳と国庫。補助金（§9.3〜9.5）は未実装
@@ -1355,7 +1371,7 @@ FiveM を起動せずに走るテストが `tests/` にあり、`./tests/run_all
 | 1 ✅ | スキーマ作成、`dyn_items` の初期投入（既存店舗の固定価格から自動生成） | テーブルが作られ、全取扱品に行がある |
 | 2 ✅ | `pricing.lua`（§4）＋ exports（§10）。既存店舗はまだ触らない | `/dyn_quote <item> <qty>` で価格が返る |
 | 3 ✅ | ブリッジと NPC 店舗（`dyn_shop`）。既存店舗がある場合はそちらから `Quote/Commit` を呼ぶ | 売買が動的価格で通り `dyn_npc_tx` に記録される |
-| 4 | レシピインポータと原価計算（§5） | `mat_cost` が埋まり、下限価格が効く |
+| 4 ✅ | レシピインポータと原価計算（§5） | `/dyn_import_recipes --apply` で `mat_cost` が埋まり、下限価格が効く |
 | 5 | 価格履歴の 1 時間バケット集計、UI の価格変動表示 | 直近推移が見える |
 | 5.5 | §6.2 の bootstrap 較正とドライラン。既存店舗の価格表から `currency_scale` を逆算 | `/dyn_calibrate --dry-run` が差分表を出す |
 | 5.6 ✅ | 起動時の資産センサスと総額健全性チェック（§6.4） | 起動ログに中央値・外れ値・drift が出る。初期所持金の導出（§6.3）は未実装 |

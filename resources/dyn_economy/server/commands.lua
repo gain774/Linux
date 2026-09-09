@@ -89,6 +89,42 @@ RegisterCommand('dyn_econ', function(src, args)
                 DynDb.isReady() and 'ok' or 'なし'))
 end, false)
 
+RegisterCommand('dyn_import_recipes', function(src, args)
+    if not allowed(src) then return reply(src, '権限がありません') end
+
+    local apply = false
+    local resource
+    for _, a in ipairs(args) do
+        if a == '--apply' then apply = true
+        elseif a ~= '--dry-run' then resource = a end
+    end
+
+    local r, err = DynRecipes.import({ apply = apply, resource = resource })
+    if not r then return reply(src, '取り込めません: ' .. tostring(err)) end
+
+    reply(src, ('取り込み %d 件 / 除外 %d 件%s')
+        :format(r.imported, r.skipped, apply and '（適用済み）' or '（ドライラン）'))
+    for reason, n in pairs(r.reasons) do
+        reply(src, ('  除外 %-18s %d 件'):format(reason, n))
+    end
+    for i = 1, math.min(10, #r.recipes) do
+        local rec = r.recipes[i]
+        local parts = {}
+        for _, inp in ipairs(rec.inputs) do
+            parts[#parts + 1] = ('%s x%g'):format(inp.item, inp.qty)
+        end
+        reply(src, ('  %s x%d <- %s'):format(rec.outputItem, rec.outputQty, table.concat(parts, ', ')))
+    end
+    if #r.recipes > 10 then reply(src, ('  ... 他 %d 件'):format(#r.recipes - 10)) end
+
+    if apply then
+        reply(src, ('レシピ %d 件を読み込み、原価 %d 件を算出しました')
+            :format(r.loaded or 0, r.costed or 0))
+    else
+        reply(src, '適用するには /dyn_import_recipes --apply')
+    end
+end, false)
+
 RegisterCommand('dyn_reload', function(src)
     if not allowed(src) then return reply(src, '権限がありません') end
     DynState.persist()

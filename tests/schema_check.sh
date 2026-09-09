@@ -76,5 +76,20 @@ if $MYSQL "$DB" -e "INSERT INTO dyn_recipe_inputs (recipe_id, item, qty) VALUES 
 fi
 echo "dyn_recipe_inputs の外部キー OK"
 
+echo "== 6. レシピの取り込みが往復するか =="
+$MYSQL "$DB" -e "
+    INSERT INTO dyn_recipes (output_item, output_qty, source) VALUES ('bread', 2, 'vorp_crafting');
+    SET @rid = LAST_INSERT_ID();
+    INSERT INTO dyn_recipe_inputs (recipe_id, item, qty) VALUES (@rid, 'wheat', 5), (@rid, 'water', 1);
+"
+N=$($MYSQL -N -B "$DB" -e "SELECT COUNT(*) FROM dyn_recipe_inputs")
+[ "$N" = "2" ] || { echo "FAIL: 素材が 2 件でない ($N)"; exit 1; }
+
+# 取り込み元ごとの入れ替えで、素材が孤児にならないこと
+$MYSQL "$DB" -e "DELETE FROM dyn_recipes WHERE source = 'vorp_crafting'"
+N=$($MYSQL -N -B "$DB" -e "SELECT COUNT(*) FROM dyn_recipe_inputs")
+[ "$N" = "0" ] || { echo "FAIL: レシピを消しても素材が残る ($N 件)"; exit 1; }
+echo "取り込みの入れ替えで素材も消える OK"
+
 echo
 echo "schema_check: すべて OK"
