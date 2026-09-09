@@ -36,6 +36,10 @@ echo "== 店舗の検証 =="
 "$LUA" tests/shop.lua
 echo
 
+echo "== 国庫の記帳 =="
+"$LUA" tests/treasury.lua
+echo
+
 echo "== SQL マイグレーションの分割 =="
 "$LUA" tests/schema.lua
 echo

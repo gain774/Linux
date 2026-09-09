@@ -11,6 +11,13 @@ local res  = root .. '/resources/dyn_economy'
 
 json = { encode = function() return '{}' end }
 
+-- 価格エンジンは確定・取り消しのたびにイベントを出す（§9.5.5）。
+-- FiveM の外なので捕まえて中身を見る。
+EmittedEvents = {}
+TriggerEvent = function(name, payload)
+    EmittedEvents[#EmittedEvents + 1] = { name = name, payload = payload }
+end
+
 dofile(res .. '/shared/pricing_math.lua')
 dofile(res .. '/server/recipes_core.lua')
 dofile(res .. '/config/config.lua')

@@ -10,6 +10,13 @@ local res  = root .. '/resources/dyn_economy'
 -- FiveM 側のグローバルのうち、このテストが触る範囲だけ用意する
 json = { encode = function() return '{}' end }
 
+-- 価格エンジンは確定・取り消しのたびにイベントを出す（§9.5.5）。
+-- FiveM の外なので捕まえて中身を見る。
+EmittedEvents = {}
+TriggerEvent = function(name, payload)
+    EmittedEvents[#EmittedEvents + 1] = { name = name, payload = payload }
+end
+
 dofile(res .. '/shared/pricing_math.lua')
 dofile(res .. '/server/recipes_core.lua')
 dofile(res .. '/config/config.lua')
@@ -197,6 +204,30 @@ Config.Currency.step = 0.25
 local coarse = DynPricing.quoteSell('corn', 7)
 near(coarse.total % 0.25, 0, 1e-9, '丸め単位を変えると追従する')
 Config.Currency.step = 0
+
+group('取引の通知 (§9.5.5)')
+reset()
+do
+    EmittedEvents = {}
+    local c = DynPricing.commitSell('char9', 'corn', 10, 'shop_x')
+    local ev = EmittedEvents[#EmittedEvents]
+    ok(ev and ev.name == 'dyn_economy:committed', '確定で committed が出る')
+    ok(ev.payload.item == 'corn' and ev.payload.qty == 10, '品目と数量が入る')
+    ok(ev.payload.direction == 'sell', '方向が入る')
+    near(ev.payload.total, c.total, 1e-9, '金額が入る')
+    near(ev.payload.tax, c.tax, 1e-9, '税額が入る（国庫はこれを記帳する）')
+    ok(ev.payload.identifier == 'char9' and ev.payload.shop == 'shop_x', '誰がどの店で取引したか')
+
+    EmittedEvents = {}
+    DynPricing.void(c)
+    local v = EmittedEvents[#EmittedEvents]
+    ok(v and v.name == 'dyn_economy:voided', '取り消しで voided が出る')
+    near(v.payload.tax, c.tax, 1e-9, '取り消しにも税額が入る（同額を戻せる）')
+
+    EmittedEvents = {}
+    DynPricing.void(c)
+    ok(#EmittedEvents == 0, '二重の取り消しでは通知しない')
+end
 
 group('commit は在庫だけを動かす（金と現物は呼び出し側の責務）')
 reset()

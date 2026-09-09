@@ -79,10 +79,19 @@ dyn_shop/                         -- NPC 店舗（価格は持たない。扱う
 │   └── main.lua                  -- ブリップ・プロンプト・メニュー
 └── （SQL 無し）
 
-dyn_guilds/                       -- 国庫・税・組合・補助金（§9、既定 OFF）
+dyn_treasury/                     -- 税の記帳と国庫（§9.1〜9.2、既定 ON）
+├── fxmanifest.lua
+├── config.lua
+├── server/
+│   ├── ledger_math.lua           -- 記帳の判定（純粋関数）
+│   ├── db.lua
+│   └── main.lua                  -- 取引通知の受信、残高、/treasury
+└── sql/
+    └── schema.sql
+
+dyn_guilds/                       -- 組合と補助金（§9.3〜9.5、既定 OFF・未実装）
 ├── fxmanifest.lua
 ├── server/
-│   ├── treasury.lua              -- 税の記帳と国庫残高（§9.1）
 │   ├── guilds.lua                -- 申請・承認・メンバー管理（§9.3）
 │   └── subsidy.lua               -- 補助金の算定と支払い（週次バッチ / §9.4）
 ├── client/
@@ -1088,6 +1097,22 @@ Config.Guilds = {
 「承認を人間がやる」という設計判断の実質的な意味はここにある。自動承認にすると
 上の制約をいくら積んでも抜けられる。
 
+### 9.5.5 取引の通知
+
+価格エンジンは国庫を名指しで呼ばない。確定と取り消しのたびに一方向の通知を出すだけで、
+国庫はそれを拾う。
+
+```lua
+TriggerEvent('dyn_economy:committed', { txId, identifier, item, qty, direction, total, tax, shop })
+TriggerEvent('dyn_economy:voided',    { txId, item, qty, direction, total, tax })
+```
+
+**取り消しの通知が要る理由**: 徴収した税だけ国庫に残ると、集めていない金が積み上がる。
+`dyn_treasury` は取り消しを受けて同額を出金し、残高を元に戻す。
+
+`dyn_treasury` を起動しなければ通知は誰も拾わず、挙動は従来どおり
+（スプレッド分は消滅する）に戻る。
+
 ### 9.6 テーブル
 
 ```sql
@@ -1296,6 +1321,7 @@ local res = exports['dyn_economy_bridge']:BuyFromNpc(source, item, qty, shopId)
 - Phase 1〜2 … `resources/dyn_economy`（[README](../resources/dyn_economy/README.md)）
 - Phase 3 … `resources/dyn_economy_bridge`（[README](../resources/dyn_economy_bridge/README.md)）と
   `resources/dyn_shop`。VORP アダプタ・決済フロー・NPC 店舗まで実装済み
+- Phase 5.7 … `resources/dyn_treasury`。税の記帳と国庫。補助金（§9.3〜9.5）は未実装
 - サーバー一式 … `server/`（[README](../server/README.md)）。artifacts の取得から DB 作成、
   リソース配置、systemd までを `setup.sh` にまとめてある
 
@@ -1310,7 +1336,7 @@ FiveM を起動せずに走るテストが `tests/` にあり、`./tests/run_all
 | 5 | 価格履歴の 1 時間バケット集計、UI の価格変動表示 | 直近推移が見える |
 | 5.5 | §6.2 の bootstrap 較正とドライラン。既存店舗の価格表から `currency_scale` を逆算 | `/dyn_calibrate --dry-run` が差分表を出す |
 | 5.6 | 起動時の資産センサスと総額健全性チェック（§6.4）、初期所持金の導出（§6.3） | 起動ログに中央値・外れ値・drift が出る |
-| 5.7 | 税の記帳と国庫（§9.1 / §9.2）。補助金はまだ出さない | 国庫に税が貯まり `/treasury` で内訳が見える |
+| 5.7 ✅ | 税の記帳と国庫（§9.1 / §9.2）。補助金はまだ出さない | 国庫に税が貯まり `/treasury` で内訳が見える |
 | 6 | 委託所（§8） | 出品・購入・返却・手数料が動作し `dyn_market_trades` に残る |
 | 7 | 日次スナップショットと `dyn_item_yield` の集計（§6.5 / §6.6）。較正はまだ適用しない | 2 週間分のデータが溜まり、時給分布が見える |
 | 8 | 収集効率アンカーと購買力追従を有効化（§6.5 / §6.6） | 高効率アイテムの `price_index` が自動で下がり始める |

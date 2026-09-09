@@ -138,6 +138,13 @@ function DynPricing.commit(identifier, itemName, qty, direction, shopId)
     q.stockBefore = before
     q.stockAfter  = after
     q.txId        = DynLedger.record(identifier, q, shopId)
+
+    -- 確定した取引を外へ知らせる。国庫（dyn_treasury）などが拾う。
+    -- 価格エンジンから他リソースを名指しで呼ばないための一方向の通知。
+    TriggerEvent('dyn_economy:committed', {
+        txId = q.txId, identifier = identifier, item = q.item, qty = q.qty,
+        direction = q.direction, total = q.total, tax = q.tax, shop = shopId,
+    })
     return q
 end
 
@@ -152,6 +159,12 @@ function DynPricing.void(q)
     DynState.addStock(q.item, q.direction == 'sell' and -q.qty or q.qty)
     DynLedger.void(q.txId)
     q.voided = true
+
+    -- 取り消しも知らせる。税を記帳した側が戻せないと国庫だけ増えたままになる
+    TriggerEvent('dyn_economy:voided', {
+        txId = q.txId, item = q.item, qty = q.qty,
+        direction = q.direction, total = q.total, tax = q.tax,
+    })
     return true
 end
 
