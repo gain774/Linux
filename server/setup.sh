@@ -149,21 +149,46 @@ EOF
 chmod +x "$ROOT/start.sh"
 
 say "完了"
+
+# 残っている作業だけを出す。済んだことまで並べると、
+# 何が本当に残っているのか分からなくなる。
+TODO=0
+
+if grep -q '__LICENSE_KEY__' "$CFG" 2>/dev/null; then
+    TODO=$((TODO+1))
+    cat <<EOF
+
+[$TODO] ライセンスキーが未設定
+      https://keymaster.fivem.net で取得し、次のファイルの
+      sv_licenseKey "__LICENSE_KEY__" を置き換える。これが無いと起動しない。
+        $CFG
+EOF
+fi
+
+if grep -q '__DB_PASSWORD__' "$CFG" 2>/dev/null; then
+    TODO=$((TODO+1))
+    cat <<EOF
+
+[$TODO] データベースのパスワードが未設定
+      $CFG の __DB_PASSWORD__ を置き換える。
+      パスワードが分からない場合は設定し直せる:
+        sudo $SQL_CLIENT -e "ALTER USER '$DB_USER'@'localhost' IDENTIFIED BY '新しいパスワード'"
+EOF
+fi
+
 cat <<EOF
-
-残り 2 つ、手でやること:
-
-  1. ライセンスキー
-       https://keymaster.fivem.net で取得し、$CFG の
-       sv_licenseKey "__LICENSE_KEY__" を置き換える。これが無いと起動しない。
-
-  2. ポート転送
-       ルーターで 30120 の TCP と UDP を転送する。
-       Cloudflare の無料プランは任意の UDP を中継しないので、
-       ゲーム接続にはポート転送が別途必要（SSH と txAdmin は Tunnel 経由でよい）。
 
 起動:
   $ROOT/start.sh
 
+外から人を入れる場合はルーターで 30120 の TCP と UDP を転送する。
+Cloudflare の無料プランは任意の UDP を中継しないため、ゲーム接続には
+ポート転送が別途必要（SSH と txAdmin は Tunnel 経由でよい）。
+同じ LAN 内や同一マシンから試すだけなら転送は要らない。
+
 常時稼働にする場合は server/redm.service を参照。
 EOF
+
+if [ "$TODO" -eq 0 ]; then
+    echo "手でやることは残っていません。"
+fi
