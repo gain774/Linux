@@ -81,7 +81,7 @@ fi
 
 # ------------------------------------------------------------------ VORP
 say "VORP のリソースを取得"
-for r in vorp_core vorp_inventory vorp_menu vorp_character vorp_hud; do
+for r in vorp_core vorp_inventory vorp_menu vorp_character; do
     DEST="$ROOT/server-data/resources/[vorp]/$r"
     if [ -d "$DEST" ]; then
         echo "  $r … 既にあります"

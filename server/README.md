@@ -3,7 +3,135 @@
 VORP + 動的経済（`dyn_economy` / `dyn_economy_bridge` / `dyn_shop`）を動かすサーバー一式。
 Ubuntu Server 24.04 想定。リポジトリ本体の Latitude 5320 サーバー化プロジェクトの続き。
 
-## 構築
+## どちらで動かすか
+
+| | 用途 | 手順 |
+|---|---|---|
+| **Windows** | 手元で動かして Mod を試す。RDR2 が同じ PC にあるならポート開放も不要 | [Windows での構築](#windows-での構築) |
+| **Ubuntu Server** | 常時稼働させて人を入れる | 下記の `setup.sh` |
+
+まず Mod の動作を見たいだけなら Windows で十分。常時稼働は後から Ubuntu に移せる
+（`resources/dyn_*` と `server.cfg` をコピーするだけ）。
+
+---
+
+## Windows での構築
+
+`setup.sh` は bash スクリプトなので Windows では動かない。こちらの手順を使う。
+
+### 1. 必要なものを入れる
+
+PowerShell を管理者で開いて:
+
+```powershell
+winget install Git.Git
+winget install 7zip.7zip
+winget install MariaDB.Server
+```
+
+`winget` が無い場合はそれぞれ公式サイトから入れる。MariaDB のインストーラでは
+**root のパスワードを控えておくこと**（後で使う）。
+
+### 2. FXServer を置く
+
+1. https://runtime.fivem.net/artifacts/fivem/build_server_windows/master/ を開く
+2. 一番新しい **`server.7z`** をダウンロード
+3. 7-Zip で `C:\redm\artifacts` に展開する
+   → 中に `FXServer.exe` と `citizen` フォルダがあれば正しい
+
+### 3. server-data と各リソースを置く
+
+```powershell
+mkdir C:\redm
+cd C:\redm
+git clone https://github.com/citizenfx/cfx-server-data.git server-data
+mkdir server-data\resources\[vorp]
+mkdir server-data\resources\[dyn]
+
+cd server-data\resources\[vorp]
+git clone https://github.com/VORPCORE/vorp_core.git
+git clone https://github.com/VORPCORE/vorp_inventory.git
+git clone https://github.com/VORPCORE/vorp_menu.git
+git clone https://github.com/VORPCORE/vorp_character.git
+```
+
+（HUD は `vorp_core` に内蔵されているので別リソースは要らない）
+
+**oxmysql** は https://github.com/overextended/oxmysql/releases の最新から
+`oxmysql.zip` を落として `C:\redm\server-data\resources\oxmysql` に展開する。
+
+このリポジトリを clone して、`resources\dyn_*` をジャンクションで繋ぐ
+（コピーでもよいが、リンクにしておくとリポジトリ側を編集して `restart dyn_economy` で反映できる）:
+
+```powershell
+cd C:\redm
+git clone https://github.com/gain774/Linux.git redm-repo
+cd redm-repo
+git checkout claude/redm-npc-price-dynamics-y3jdl5
+
+cmd /c mklink /J "C:\redm\server-data\resources\[dyn]\dyn_economy"        "C:\redm\redm-repo\resources\dyn_economy"
+cmd /c mklink /J "C:\redm\server-data\resources\[dyn]\dyn_economy_bridge" "C:\redm\redm-repo\resources\dyn_economy_bridge"
+cmd /c mklink /J "C:\redm\server-data\resources\[dyn]\dyn_shop"           "C:\redm\redm-repo\resources\dyn_shop"
+cmd /c mklink /J "C:\redm\server-data\resources\[dyn]\dyn_treasury"       "C:\redm\redm-repo\resources\dyn_treasury"
+```
+
+`mklink /J` はジャンクションなので管理者権限がなくても作れる（`/D` のシンボリックリンクは要権限）。
+
+### 4. データベースを作る
+
+```powershell
+mysql -u root -p
+```
+
+```sql
+CREATE DATABASE redm CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'redm'@'localhost' IDENTIFIED BY 'ここに好きなパスワード';
+GRANT ALL PRIVILEGES ON redm.* TO 'redm'@'localhost';
+FLUSH PRIVILEGES;
+EXIT;
+```
+
+テーブルは各リソースが起動時に自動で作るので、SQL を流す必要はない。
+
+### 5. server.cfg を置く
+
+`C:\redm\redm-repo\server\server.cfg` を `C:\redm\server-data\server.cfg` にコピーし、
+2 か所を書き換える。
+
+| 置換前 | 置換後 |
+|---|---|
+| `__DB_PASSWORD__` | 手順 4 で決めたパスワード |
+| `__LICENSE_KEY__` | https://keymaster.fivem.net で取得したキー |
+
+**ライセンスキーが無いと起動しない。** 無料で取れる。
+
+### 6. 起動する
+
+`C:\redm\start.bat` を作る:
+
+```bat
+@echo off
+cd /d C:\redm\server-data
+C:\redm\artifacts\FXServer.exe +exec server.cfg
+pause
+```
+
+ダブルクリックで起動。コンソールが出る。
+
+### 7. 接続する
+
+同じ PC で RDR2 を起動し、**F8** でコンソールを開いて:
+
+```
+connect localhost:30120
+```
+
+**ローカルで試すだけならポート開放も Cloudflare も要らない。** 外から人を入れるときだけ
+ルーターで `30120` の TCP と UDP を転送する。
+
+---
+
+## Ubuntu Server での構築
 
 ```bash
 sudo apt update && sudo apt install -y curl tar xz-utils git unzip mariadb-server
@@ -23,7 +151,7 @@ sudo apt update && sudo apt install -y curl tar xz-utils git unzip mariadb-serve
 リンクで配置しているので、リポジトリ側を編集して `refresh` → `restart dyn_economy` で反映できる。
 配布時は `setup.sh` の `ln -s` を `cp -r` に変える。
 
-### 手でやること 2 つ
+### Ubuntu の場合に手でやること 2 つ
 
 | | |
 |---|---|
