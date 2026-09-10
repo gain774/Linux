@@ -34,14 +34,16 @@ say "FXServer artifacts を取得"
 mkdir -p "$ROOT/artifacts"
 if [ -x "$ROOT/artifacts/run.sh" ]; then
     echo "既にあります: $ROOT/artifacts"
+    echo "  入れ替えたいときは ./server/update-artifacts.sh を使ってください"
 else
     if [ -z "${FXSERVER_URL:-}" ]; then
         echo "最新ビルドの URL を解決します"
         INDEX=https://runtime.fivem.net/artifacts/fivem/build_proot_linux/master/
         # 一覧ページから最新の fx.tar.xz を拾う。取れなければ手で指定してもらう。
+        # ビルド番号でソートする。'./' を外してから数値比較しないと全部 0 になる。
         FXSERVER_URL=$(curl -fsSL "$INDEX" \
-            | grep -oE '\./[0-9]+-[0-9a-f]+/fx\.tar\.xz' \
-            | sort -t- -k1,1n | tail -1 | sed "s|^\./|$INDEX|") || true
+            | grep -oE '[0-9]+-[0-9a-f]+/fx\.tar\.xz' \
+            | sort -t- -k1,1n -u | tail -1 | sed "s|^|$INDEX|") || true
     fi
     [ -n "${FXSERVER_URL:-}" ] || die "artifacts の URL を解決できません。
   https://runtime.fivem.net/artifacts/fivem/build_proot_linux/master/ を開いて
@@ -81,8 +83,13 @@ fi
 
 # ------------------------------------------------------------------ VORP
 say "VORP のリソースを取得"
-for r in vorp_core vorp_inventory vorp_menu vorp_character; do
+for r in vorp_lib vorp_core vorp_inventory vorp_menu vorp_character; do
     DEST="$ROOT/server-data/resources/[vorp]/$r"
+    # ダウンロードが HTML（エラーページ）で落ちていることがあるので取り直す。
+    if [ -d "$DEST" ] && grep -rlqI '^<!DOCTYPE\|^<html' "$DEST" --include='*.lua' 2>/dev/null; then
+        warn "  $r … .lua が HTML になっています。取り直します"
+        rm -rf "$DEST"
+    fi
     if [ -d "$DEST" ]; then
         echo "  $r … 既にあります"
     else
@@ -94,7 +101,7 @@ done
 
 # ------------------------------------------------------------------ dyn_*
 say "動的経済のリソースを配置"
-for r in dyn_economy dyn_economy_bridge dyn_shop; do
+for r in dyn_economy dyn_economy_bridge dyn_shop dyn_treasury; do
     DEST="$ROOT/server-data/resources/[dyn]/$r"
     rm -rf "$DEST"
     # 開発しながら試せるようにシンボリックリンクにする。
