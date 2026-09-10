@@ -16,6 +16,10 @@ done
 echo "$n ファイル OK"
 echo
 
+echo "== fxmanifest の取りこぼし =="
+"$LUA" tests/manifest.lua
+echo
+
 echo "== 単体テスト（純粋関数） =="
 "$LUA" tests/run.lua
 echo

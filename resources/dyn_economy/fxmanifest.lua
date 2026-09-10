@@ -18,6 +18,7 @@ server_scripts {
     '@oxmysql/lib/MySQL.lua',
     'server/db.lua',
     'server/state.lua',
+    'server/recipes_core.lua',
     'server/recipes_import.lua',
     'server/recipes.lua',
     'server/census.lua',
