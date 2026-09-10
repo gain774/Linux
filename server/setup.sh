@@ -106,7 +106,10 @@ done
 # ------------------------------------------------------------------ データベース
 say "データベースを用意"
 SQL_CLIENT=$(command -v mariadb || command -v mysql)
-if sudo "$SQL_CLIENT" -e "USE \`$DB_NAME\`" 2>/dev/null; then
+# 既存 DB の判定は、まず DB ユーザーの認証情報で試す。
+# sudo が使えない／パスワードを聞かれる環境でも通るようにするため。
+if { [ -n "${DB_PASSWORD:-}" ] && "$SQL_CLIENT" -u "$DB_USER" -p"$DB_PASSWORD" -e "USE \`$DB_NAME\`"; } 2>/dev/null \
+   || sudo "$SQL_CLIENT" -e "USE \`$DB_NAME\`" 2>/dev/null; then
     echo "既にあります: $DB_NAME"
     DB_PASSWORD="${DB_PASSWORD:-}"
     [ -n "$DB_PASSWORD" ] || warn "既存 DB のパスワードが分からないので server.cfg は書き換えません（DB_PASSWORD で指定できます）"
