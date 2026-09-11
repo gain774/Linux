@@ -1,0 +1,28 @@
+# RedM サーバーを常時稼働させる systemd unit。
+#
+#   sudo cp server/redm.service /etc/systemd/system/
+#   sudo sed -i "s|__USER__|$USER|; s|__HOME__|$HOME|" /etc/systemd/system/redm.service
+#   sudo systemctl daemon-reload && sudo systemctl enable --now redm
+#
+# ログ: journalctl -u redm -f
+# コンソールを触りたい場合は screen 運用に切り替えるか txAdmin を使う。
+
+[Unit]
+Description=RedM (FXServer) — dynamic economy
+After=network-online.target mariadb.service
+Wants=network-online.target
+Requires=mariadb.service
+
+[Service]
+Type=simple
+User=__USER__
+WorkingDirectory=__HOME__/redm/server-data
+ExecStart=__HOME__/redm/artifacts/run.sh +exec server.cfg
+Restart=on-failure
+RestartSec=10s
+# 再起動ループでログを埋めないよう、短時間に何度も落ちたら諦める
+StartLimitBurst=5
+StartLimitIntervalSec=300
+
+[Install]
+WantedBy=multi-user.target

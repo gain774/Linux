@@ -9,6 +9,24 @@ https://claude.ai/code/artifact/36c9415f-10a6-41ec-8fe9-a86b82571d03
 
 ---
 
+## RedM 動的経済 Mod（進行中）
+
+このリポジトリには、上記サーバー上で動かす RedM 用の動的経済 Mod も入っている。
+
+| | |
+|---|---|
+| 設計 | [`docs/redm-dynamic-economy.md`](docs/redm-dynamic-economy.md) |
+| 価格エンジン | [`resources/dyn_economy`](resources/dyn_economy/README.md) |
+| VORP ブリッジ | [`resources/dyn_economy_bridge`](resources/dyn_economy_bridge/README.md) |
+| NPC 店舗 | `resources/dyn_shop` |
+| サーバー構築 | [`server/README.md`](server/README.md) — `./server/setup.sh` で一式が揃う |
+| テスト | `./tests/run_all.sh`（Lua 5.4。FiveM を起動せず走る） |
+
+NPC への売買で需要と供給に応じて価格が動き、単一作物の大量生産が自分で単価を潰すようにする。
+フレームワークは **VORP**。
+
+---
+
 ## 目的
 
 - Latitude 5320 を headless の Ubuntu Server 24.04 LTS にする
