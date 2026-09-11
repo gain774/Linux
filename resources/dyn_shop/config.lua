@@ -23,9 +23,9 @@ ShopConfig.shops = {
         blip   = { sprite = 1749866775, name = '雑貨屋' },
         hours  = { open = 7, close = 21 },     -- nil なら 24 時間営業
         -- プレイヤーが売れる品目
-        sell = { 'corn', 'wheat', 'tobacco', 'animal_meat' },
+        sell = { 'corn', 'wheat', 'potato', 'chewingtobacco', 'meat' },
         -- プレイヤーが買える品目
-        buy  = { 'corn', 'wheat', 'flour', 'bread' },
+        buy  = { 'corn', 'wheat', 'flour' },
     },
 
     valentine_butcher = {
@@ -33,8 +33,8 @@ ShopConfig.shops = {
         coords = vector3(-286.0, 776.0, 119.5),
         blip   = { sprite = 1749866775, name = '精肉店' },
         hours  = { open = 8, close = 20 },
-        sell = { 'animal_pelt', 'animal_meat' },
-        buy  = { 'animal_meat' },
+        sell = { 'deerpelt', 'coyotepelt', 'wolfpelt', 'meat', 'fishmeat' },
+        buy  = { 'meat', 'fishmeat' },
     },
 
     blackwater_trader = {
@@ -42,7 +42,7 @@ ShopConfig.shops = {
         coords = vector3(-871.0, -1315.0, 43.6),
         blip   = { sprite = 1749866775, name = '交易所' },
         hours  = nil,                           -- 24 時間
-        sell = { 'coal', 'iron_ore', 'gold_nugget', 'animal_pelt' },
-        buy  = { 'coal', 'iron_ore' },
+        sell = { 'coal', 'iron', 'gold_nugget', 'deerpelt', 'wolfpelt' },
+        buy  = { 'coal', 'iron' },
     },
 }

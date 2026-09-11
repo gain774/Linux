@@ -71,5 +71,5 @@ Config.Census = {
 
     -- 物価の基準バスケット。時系列で比べられるよう固定した品目にする。
     -- 空なら扱っている全品目から作る（品目を足すたびに基準が変わるので推奨しない）。
-    basket = { 'corn', 'wheat', 'animal_meat', 'coal', 'bread' },
+    basket = { 'corn', 'wheat', 'meat', 'coal', 'flour' },
 }

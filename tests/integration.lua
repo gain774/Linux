@@ -143,24 +143,24 @@ ok(unit500 < unit1, '500 個まとめ売りの平均単価は 1 個売りより�
 local lump  = DynPricing.quoteSell('corn', 300).total
 local split = DynPricing.quoteSell('corn', 100).total
              + DynPricing.quoteSell('wheat', 100).total
-             + DynPricing.quoteSell('tobacco', 100).total
+             + DynPricing.quoteSell('chewingtobacco', 100).total
 ok(split > lump, '3 品目に分けたほうが総額で有利',
    ('lump=%.2f split=%.2f'):format(lump, split))
 
 group('レシピ原価による下限 (§5.3)')
 reset()
-DynState.setStock('bread', DynState.get('bread').targetStock * 50)   -- 供給過多にする
-local floored = DynPricing.quoteSell('bread', 1)
+DynState.setStock('flour', DynState.get('flour').targetStock * 50)   -- 供給過多にする
+local floored = DynPricing.quoteSell('flour', 1)
 local glut = floored.total
-DynState.setMatCost('bread', 6.0)
-local withCost = DynPricing.quoteSell('bread', 1)
+DynState.setMatCost('flour', 6.0)
+local withCost = DynPricing.quoteSell('flour', 1)
 ok(withCost.total > glut, '原価を与えると買取価格が持ち上がる',
    ('glut=%.4f withCost=%.4f'):format(glut, withCost.total))
 ok(withCost.breakdown.floor ~= nil, 'breakdown に原価下限が記録される')
 near(withCost.total, 6.0 * Config.Recipes.craftMargin * (1 - DynMath.taxFromSpread(Categories.crafted.spread)),
      1e-4, '下限は 原価 × マージン（税引き後）')
 Config.Recipes.enabled = false
-ok(DynPricing.quoteSell('bread', 1).total < withCost.total - 1e-9,
+ok(DynPricing.quoteSell('flour', 1).total < withCost.total - 1e-9,
    'Config.Recipes.enabled = false で下限が外れる')
 Config.Recipes.enabled = true
 
