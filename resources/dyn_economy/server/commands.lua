@@ -29,11 +29,13 @@ RegisterCommand('dyn_quote', function(src, args)
     local q, err = DynPricing.quote(item, qty, dir)
     if not q then return reply(src, ('見積り不可: %s (%s)'):format(item, err)) end
 
-    reply(src, ('%s x%d [%s] 合計 %s / 平均単価 %s / 現在単価 %s / 税 %s')
-        :format(item, qty, dir, money(q.total), money(q.unitAvg), money(q.priceNow), money(q.tax)))
-    reply(src, ('  在庫 %.2f / 均衡 %.2f / 基準価格 %s%s')
-        :format(q.stock, DynState.get(item).targetStock, money(q.basePrice),
-                q.breakdown.floor and (' / 原価下限 x%.3f'):format(q.breakdown.floor) or ''))
+    local info = DynState.get(item)
+    reply(src, ('%s（%s） x%d [%s] 合計 %s / 平均単価 %s / 現在単価 %s / 税 %s')
+        :format(item, info.label or item, qty, dir, money(q.total), money(q.unitAvg), money(q.priceNow), money(q.tax)))
+    reply(src, ('  在庫 %.2f / 均衡 %.2f / 基準価格 %s%s%s')
+        :format(q.stock, info.targetStock, money(q.basePrice),
+                q.breakdown.floor and (' / 原価下限 x%.3f'):format(q.breakdown.floor) or '',
+                info.fixed and ' / 固定価格' or ''))
 end, false)
 
 RegisterCommand('dyn_price', function(src, args)
@@ -50,11 +52,12 @@ RegisterCommand('dyn_price', function(src, args)
     for _, e in ipairs(list) do
         local s = DynPricing.quote(e.name, 1, 'sell')
         local b = DynPricing.quote(e.name, 1, 'buy')
-        reply(src, ('  %-14s %8s %8s  %.0f%%')
-            :format(e.name,
+        reply(src, ('  %-14s %-10s %8s %8s  %.0f%%%s')
+            :format(e.name, e.it.label or '',
                     s and money(s.priceNow) or '-',
                     b and money(b.priceNow) or '-',
-                    (e.it.stock / e.it.targetStock) * 100))
+                    (e.it.stock / e.it.targetStock) * 100,
+                    e.it.fixed and '  [固定]' or ''))
     end
 end, false)
 
@@ -74,6 +77,18 @@ RegisterCommand('dyn_setstock', function(src, args)
     if not item or not value then return reply(src, '使い方: /dyn_setstock <item> <在庫>') end
     if not DynState.setStock(item, value) then return reply(src, '不明なアイテム: ' .. item) end
     reply(src, ('%s の仮想在庫を %.2f にしました'):format(item, value))
+end, false)
+
+RegisterCommand('dyn_setfixed', function(src, args)
+    if not allowed(src) then return reply(src, '権限がありません') end
+    local item, mode = args[1], args[2]
+    if not item or (mode ~= 'on' and mode ~= 'off') then
+        return reply(src, '使い方: /dyn_setfixed <item> <on|off>')
+    end
+    if not DynState.setFixed(item, mode == 'on') then
+        return reply(src, '不明なアイテム: ' .. item)
+    end
+    reply(src, ('%s を%s価格にしました'):format(item, mode == 'on' and '固定' or '変動'))
 end, false)
 
 RegisterCommand('dyn_econ', function(src, args)
@@ -123,6 +138,35 @@ RegisterCommand('dyn_import_recipes', function(src, args)
     else
         reply(src, '適用するには /dyn_import_recipes --apply')
     end
+end, false)
+
+--[[
+  実際に commit → void を 1 往復させて、価格エンジンの決済経路そのものを疑似的に
+  検証する。DB 込みの経路（enabled 等のフラグ解釈を含む）まで通るので、
+  /dyn_quote だけでは分からない「本当に買い取れるか」を確認できる。
+  void まで行うので在庫・記帳は元に戻る（実在庫に影響しない）
+]]
+RegisterCommand('dyn_test_trade', function(src, args)
+    if not allowed(src) then return reply(src, '権限がありません') end
+    local item, qty, dir = args[1], tonumber(args[2]) or 1, (args[3] == 'buy') and 'buy' or 'sell'
+    if not item then return reply(src, '使い方: /dyn_test_trade <item> [数量] [sell|buy]') end
+
+    local before = DynState.get(item)
+    if not before then return reply(src, '不明なアイテム: ' .. item) end
+    if not before.enabled then return reply(src, ('%s は enabled=false で取引できません（DB の dyn_items を確認）'):format(item)) end
+
+    local commit = DynPricing.commit('__dyn_test_trade__', item, qty, dir, 'debug')
+    if not commit then
+        return reply(src, ('買い取り不可: %s（%s）'):format(item, dir))
+    end
+
+    reply(src, ('OK: %s x%d [%s] 合計 %s / 在庫 %.2f -> %.2f / txId=%s')
+        :format(item, qty, dir, money(commit.total), commit.stockBefore, commit.stockAfter, tostring(commit.txId)))
+
+    DynPricing.void(commit)
+    local after = DynState.get(item)
+    reply(src, ('void 後の在庫 %.2f（%s）')
+        :format(after.stock, math.abs(after.stock - before.stock) < 1e-6 and '元に戻った' or '戻っていない、要確認'))
 end, false)
 
 RegisterCommand('dyn_reload', function(src)

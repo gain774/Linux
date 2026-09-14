@@ -28,6 +28,10 @@ echo "== 結合テスト（価格スタック） =="
 "$LUA" tests/integration.lua
 echo
 
+echo "== DB 上書き経路（enabled 等のフラグ列の型ゆれ） =="
+"$LUA" tests/db_load.lua
+echo
+
 echo "== 決済フロー（ブリッジ） =="
 "$LUA" tests/bridge.lua
 echo
@@ -50,6 +54,10 @@ echo
 
 echo "== 国庫の記帳 =="
 "$LUA" tests/treasury.lua
+echo
+
+echo "== 個人間取引（決済フロー） =="
+"$LUA" tests/dyn_trade.lua
 echo
 
 echo "== SQL マイグレーションの分割 =="

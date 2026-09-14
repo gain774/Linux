@@ -47,6 +47,8 @@ exports('GetItemInfo', function(item)
     local buy  = DynPricing.quote(item, 1, 'buy')
     return {
         item        = item,
+        label       = it.label or item,
+        desc        = it.desc,
         category    = it.category,
         stock       = it.stock,
         targetStock = it.targetStock,
@@ -55,6 +57,7 @@ exports('GetItemInfo', function(item)
         npcSell     = buy and buy.priceNow or nil,     -- NPC がプレイヤーへ売る単価
         sellable    = it.npcSellable,
         buyable     = it.npcBuyable,
+        fixed       = it.fixed,
     }
 end)
 
@@ -87,6 +90,13 @@ end)
 --- インベントリ側に存在しない品を無効化するなど、環境に合わせた除外に使う
 exports('SetItemEnabled', function(item, enabled)
     return DynState.setEnabled(item, enabled)
+end)
+
+--- 品目を固定価格／変動価格に切り替える（DB へ永続化）。
+--- 銃・弾薬・道具のように「売り込まれても値崩れしてほしくない」品目を
+--- 個別に固定価格へ倒すための管理用途
+exports('SetItemFixed', function(item, fixed)
+    return DynState.setFixed(item, fixed)
 end)
 
 exports('IsReady', function() return DynState.count() > 0 end)

@@ -56,7 +56,8 @@ local function buildMenu(src, shopId, shop)
         local info = exports.dyn_economy:GetItemInfo(item)
         if q and q.ok and info then
             out.sell[#out.sell + 1] = {
-                item = item, unit = q.priceNow,
+                item = item, label = info.label or item, desc = info.desc,
+                unit = q.priceNow, fixed = info.fixed,
                 -- 均衡在庫に対する比率。安い理由が需給なのか一目で分かるようにする
                 supply = info.targetStock > 0 and (info.stock / info.targetStock) or 1.0,
             }
@@ -65,8 +66,12 @@ local function buildMenu(src, shopId, shop)
 
     for _, item in ipairs(shop.buy or {}) do
         local q = exports.dyn_economy_bridge:Quote(src, item, 1, 'buy')
+        local info = exports.dyn_economy:GetItemInfo(item)
         if q and q.ok then
-            out.buy[#out.buy + 1] = { item = item, unit = q.priceNow }
+            out.buy[#out.buy + 1] = {
+                item = item, label = info and info.label or item, desc = info and info.desc,
+                unit = q.priceNow, fixed = info and info.fixed,
+            }
         end
     end
 
@@ -111,7 +116,8 @@ RegisterNetEvent('dyn_shop:trade', function(shopId, item, qty, direction)
 
     -- 失敗時のプレイヤーへの通知はブリッジ側が済ませている（二重に出さない）
     if res and res.ok then
-        TriggerClientEvent('dyn_shop:traded', src, direction, item, qty, res.total)
+        local info = exports.dyn_economy:GetItemInfo(item)
+        TriggerClientEvent('dyn_shop:traded', src, direction, item, qty, res.total, info and info.label)
     end
     -- 取引で価格が動くので、成否にかかわらずメニューを引き直す
     TriggerClientEvent('dyn_shop:menu', src, buildMenu(src, shopId, shop))

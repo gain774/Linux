@@ -54,7 +54,7 @@ local function setupPrompts()
     end
 end
 
-local function openQuantityMenu(shopId, item, direction, unit)
+local function openQuantityMenu(shopId, item, direction, unit, displayLabel, desc)
     local elements = {}
     for _, q in ipairs(ShopConfig.quantities) do
         if q ~= 'all' or direction == 'sell' then
@@ -65,8 +65,8 @@ local function openQuantityMenu(shopId, item, direction, unit)
     end
 
     MenuData.Open('default', GetCurrentResourceName(), 'dyn_shop_qty', {
-        title      = item,
-        subtext    = (direction == 'sell') and '売る数量' or '買う数量',
+        title      = displayLabel or item,
+        subtext    = desc or ((direction == 'sell') and '売る数量' or '買う数量'),
         elements   = elements,
         itemHeight = '4vh',
     }, function(data)
@@ -85,17 +85,21 @@ local function openShopMenu(payload)
     local elements = {}
 
     for _, e in ipairs(payload.sell) do
+        local fixedTag = e.fixed and ' <span style="opacity:.6;">[固定]</span>' or ''
         elements[#elements + 1] = {
-            label = ('売る: %s <span style="opacity:.7;">%s / 個</span>%s')
-                :format(e.item, money(e.unit), supplyTag(e.supply)),
-            value = { item = e.item, dir = 'sell', unit = e.unit },
+            label = ('売る: %s <span style="opacity:.7;">%s / 個</span>%s%s')
+                :format(e.label, money(e.unit), supplyTag(e.supply), fixedTag),
+            desc  = e.desc,
+            value = { item = e.item, dir = 'sell', unit = e.unit, label = e.label, desc = e.desc },
         }
     end
     for _, e in ipairs(payload.buy) do
+        local fixedTag = e.fixed and ' <span style="opacity:.6;">[固定]</span>' or ''
         elements[#elements + 1] = {
-            label = ('買う: %s <span style="opacity:.7;">%s / 個</span>')
-                :format(e.item, money(e.unit)),
-            value = { item = e.item, dir = 'buy', unit = e.unit },
+            label = ('買う: %s <span style="opacity:.7;">%s / 個</span>%s')
+                :format(e.label, money(e.unit), fixedTag),
+            desc  = e.desc,
+            value = { item = e.item, dir = 'buy', unit = e.unit, label = e.label, desc = e.desc },
         }
     end
 
@@ -113,7 +117,7 @@ local function openShopMenu(payload)
         local v = data.current.value
         if not v then return end
         MenuData.CloseAll()
-        openQuantityMenu(payload.shopId, v.item, v.dir, v.unit)
+        openQuantityMenu(payload.shopId, v.item, v.dir, v.unit, v.label, v.desc)
     end, function()
         MenuData.CloseAll()
         menuOpen = false
@@ -141,9 +145,9 @@ RegisterNetEvent('dyn_shop:denied', function(reason)
     TriggerEvent('vorp:TipRight', messages[reason] or ('取引できません: ' .. tostring(reason)), 4000)
 end)
 
-RegisterNetEvent('dyn_shop:traded', function(direction, item, qty, total)
+RegisterNetEvent('dyn_shop:traded', function(direction, item, qty, total, label)
     local verb = (direction == 'sell') and '売却' or '購入'
-    TriggerEvent('vorp:TipRight', ('%s %s x%d — %s'):format(verb, item, qty, money(total)), 4000)
+    TriggerEvent('vorp:TipRight', ('%s %s x%d — %s'):format(verb, label or item, qty, money(total)), 4000)
 end)
 
 CreateThread(function()

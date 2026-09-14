@@ -38,6 +38,23 @@ function TreasuryMath.entryForVoid(tx)
     return entry
 end
 
+--- 個人間取引（dyn_trade）の手数料を記帳する。
+--- @param payload table dyn_trade:fee のペイロード { amount, sessionId, note }
+function TreasuryMath.entryForP2PFee(payload)
+    if type(payload) ~= 'table' then return nil end
+    local amount = tonumber(payload.amount)
+    if not amount or amount <= 0 then return nil end
+
+    return {
+        direction = 'in',
+        source    = 'p2p_trade_fee',
+        amount    = amount,
+        refType   = 'dyn_p2p_tx',
+        refId     = payload.sessionId,
+        note      = payload.note,
+    }
+end
+
 --- 残高に記帳を適用した結果
 function TreasuryMath.apply(balance, entry)
     balance = tonumber(balance) or 0

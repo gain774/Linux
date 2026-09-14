@@ -23,7 +23,31 @@ local DB_NUMBERS = {
 local DB_FLAGS = {
     npc_sellable = 'npcSellable', npc_buyable = 'npcBuyable',
     pinned       = 'pinned',      enabled     = 'enabled',
+    price_fixed  = 'fixed',
 }
+
+--[[
+  oxmysql は TINYINT(1) 列を環境によって Lua の 1/0 ではなく true/false で返す
+  （mysql2 の typeCast がドライバ設定次第で切り替わるため）。
+  `row[col] == 1` だけで判定すると、boolean で返ってきた環境では全品目が
+  enabled=false（=取引不可）に化ける。1 と true の両方を真として扱う。
+]]
+local function isTruthyFlag(v)
+    return v == 1 or v == true or v == '1'
+end
+
+--[[
+  fixed が true の品目は、需給で動く 5 段目（弾力性）を切って基準価格に固定する。
+  通貨スケールや物価水準（§4.5）といった経済全体の較正は引き続き乗るので、
+  「その品目だけの需給には反応しない」であって「未来永劫 1 円も動かない」ではない。
+  銃・弾薬・道具のような、売り込まれても崩れてほしくない品目に使う想定（§11.1 の外側）。
+]]
+--- baseElasticity は fixed 解除時に戻す先。resolve() で一度だけ確定させ、
+--- 以後 applyFixed が it.elasticity を書き換えても消えないようにしておく
+local function applyFixed(it, fixed)
+    it.fixed = fixed == true
+    it.elasticity = it.fixed and 0 or it.baseElasticity
+end
 
 local function resolve(itemName, cfg)
     local cat = Categories[cfg.category] or Categories.default
@@ -36,10 +60,14 @@ local function resolve(itemName, cfg)
         npcBuyable  = cfg.npcBuyable  ~= false,
         pinned      = cfg.pinned == true,
         enabled     = cfg.enabled ~= false,
+        label       = cfg.label,
+        desc        = cfg.desc,
     }
     for _, key in ipairs(INHERITED) do
         it[key] = cfg[key] or cat[key]
     end
+    it.baseElasticity = it.elasticity
+    applyFixed(it, cfg.fixed)
     return it
 end
 
@@ -62,14 +90,14 @@ function DynState.load()
         DynDb.execute([[
             INSERT INTO dyn_items
               (item, category, price_index, base_price, target_stock, elasticity,
-               min_mult, max_mult, half_life_min, npc_spread, npc_sellable, npc_buyable, pinned, enabled)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+               min_mult, max_mult, half_life_min, npc_spread, npc_sellable, npc_buyable, pinned, enabled, price_fixed)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             ON DUPLICATE KEY UPDATE price_index = VALUES(price_index)
         ]], {
             name, it.category, it.priceIndex, 0, it.targetStock, it.elasticity,
             it.minMult, it.maxMult, it.halfLifeMin, it.spread,
             it.npcSellable and 1 or 0, it.npcBuyable and 1 or 0,
-            it.pinned and 1 or 0, it.enabled and 1 or 0,
+            it.pinned and 1 or 0, it.enabled and 1 or 0, it.fixed and 1 or 0,
         })
     end
 
@@ -78,7 +106,8 @@ function DynState.load()
         local it = items[row.item]
         if it then
             for col, field in pairs(DB_NUMBERS) do it[field] = tonumber(row[col]) or it[field] end
-            for col, field in pairs(DB_FLAGS)   do it[field] = row[col] == 1 end
+            for col, field in pairs(DB_FLAGS)   do it[field] = isTruthyFlag(row[col]) end
+            applyFixed(it, it.fixed) -- DB の price_fixed=1 が elasticity 列より後に効くようにやり直す
             it.stock = it.targetStock
         end
     end
@@ -151,6 +180,19 @@ function DynState.setEnabled(itemName, enabled)
     local it = items[itemName]
     if not it then return false end
     it.enabled = enabled and true or false
+    return true
+end
+
+--- 固定価格／変動価格の切り替え。運用中の判断なので DB に永続化する
+--- （enabled と違い、環境が変わっても引き継ぎたい設定のため）
+function DynState.setFixed(itemName, fixed)
+    local it = items[itemName]
+    if not it then return false end
+    applyFixed(it, fixed)
+    if DynDb.isReady() then
+        DynDb.execute('UPDATE dyn_items SET price_fixed = ?, elasticity = ? WHERE item = ?',
+            { it.fixed and 1 or 0, it.elasticity, itemName })
+    end
     return true
 end
 

@@ -18,8 +18,13 @@ CREATE TABLE IF NOT EXISTS dyn_items (
   npc_sellable    TINYINT(1)    NOT NULL DEFAULT 1,
   npc_buyable     TINYINT(1)    NOT NULL DEFAULT 1,
   pinned          TINYINT(1)    NOT NULL DEFAULT 0,
-  enabled         TINYINT(1)    NOT NULL DEFAULT 1
+  enabled         TINYINT(1)    NOT NULL DEFAULT 1,
+  price_fixed     TINYINT(1)    NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 既存環境向け。price_fixed は後から足した列なので、テーブルが既にある環境では
+-- CREATE TABLE IF NOT EXISTS が素通りしてしまう。ALTER 側で個別に補う
+ALTER TABLE dyn_items ADD COLUMN IF NOT EXISTS price_fixed TINYINT(1) NOT NULL DEFAULT 0;
 
 CREATE TABLE IF NOT EXISTS dyn_item_state (
   item            VARCHAR(64)   NOT NULL PRIMARY KEY,

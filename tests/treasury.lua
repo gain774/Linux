@@ -88,6 +88,20 @@ near((TreasuryMath.spendable(10000, 0, 3.0)), 10000, '税収が無ければ全�
 near((TreasuryMath.spendable(0, 0, 0)), 0, 'すべて 0 でも落ちない')
 near((TreasuryMath.spendable(nil, nil, nil)), 0, 'nil を渡しても落ちない')
 
+group('個人間取引(dyn_trade)の手数料記帳')
+do
+    local e = TreasuryMath.entryForP2PFee({ amount = 3.5, sessionId = 42, note = 'test' })
+    ok(e ~= nil, '手数料があれば記帳する')
+    ok(e.direction == 'in', '国庫への入りとして記帳する')
+    ok(e.source == 'p2p_trade_fee', 'source は p2p_trade_fee')
+    near(e.amount, 3.5, '金額がそのまま入る')
+    ok(e.refType == 'dyn_p2p_tx' and e.refId == 42, '参照先が dyn_p2p_tx を指す')
+end
+ok(TreasuryMath.entryForP2PFee({ amount = 0 }) == nil, '手数料 0 は記帳しない')
+ok(TreasuryMath.entryForP2PFee({ amount = -1 }) == nil, '負の手数料は記帳しない')
+ok(TreasuryMath.entryForP2PFee(nil) == nil, 'nil を渡しても落ちない')
+ok(TreasuryMath.entryForP2PFee('x') == nil, '型が違っても落ちない')
+
 print()
 print(('%d passed, %d failed'):format(passed, failed))
 os.exit(failed == 0 and 0 or 1)

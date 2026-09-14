@@ -26,13 +26,18 @@ local raw = f:read('a'); f:close()
 local stmts = DynDb.splitStatements(raw)
 
 ok(#stmts > 0, '文が取り出せる')
-local allCreate, empties, withSemicolon = true, 0, 0
+
+-- 新しいテーブルは CREATE TABLE IF NOT EXISTS、既存テーブルへの列追加は
+-- ALTER TABLE ... ADD COLUMN IF NOT EXISTS のどちらか。両方とも何度実行しても安全な文だけを許す
+local allSafe, empties, withSemicolon = true, 0, 0
 for _, s in ipairs(stmts) do
-    if not s:match('^CREATE TABLE IF NOT EXISTS') then allCreate = false end
+    local isCreate = s:match('^CREATE TABLE IF NOT EXISTS')
+    local isAlter  = s:match('^ALTER TABLE %S+ ADD COLUMN IF NOT EXISTS')
+    if not (isCreate or isAlter) then allSafe = false end
     if #s == 0 then empties = empties + 1 end
     if s:find(';') then withSemicolon = withSemicolon + 1 end
 end
-ok(allCreate, 'すべて CREATE TABLE IF NOT EXISTS で始まる（先頭のコメントが混ざっていない）')
+ok(allSafe, 'すべて CREATE TABLE IF NOT EXISTS か ALTER TABLE ADD COLUMN IF NOT EXISTS で始まる（先頭のコメントが混ざっていない）')
 ok(empties == 0, '空の文が混ざらない')
 ok(withSemicolon == 0, '文の中に ; が残らない')
 
@@ -44,12 +49,19 @@ local expected = {
 for _, t in ipairs(expected) do
     local found = false
     for _, s in ipairs(stmts) do
-        if s:find(t, 1, true) then found = true break end
+        if s:match('^CREATE TABLE IF NOT EXISTS') and s:find(t, 1, true) then found = true break end
     end
-    ok(found, ('%s の定義がある'):format(t))
+    ok(found, ('%s の CREATE 文がある'):format(t))
 end
-ok(#stmts == #expected, ('文の数がテーブル数と一致する（%d）'):format(#expected),
-   ('got %d'):format(#stmts))
+
+local createCount, alterCount = 0, 0
+for _, s in ipairs(stmts) do
+    if s:match('^CREATE TABLE IF NOT EXISTS') then createCount = createCount + 1
+    elseif s:match('^ALTER TABLE') then alterCount = alterCount + 1 end
+end
+ok(createCount == #expected, ('CREATE 文の数がテーブル数と一致する（%d）'):format(#expected),
+   ('got %d'):format(createCount))
+ok(alterCount >= 0 and createCount + alterCount == #stmts, '文の内訳が CREATE と ALTER だけで説明できる')
 
 print('端の条件')
 ok(#DynDb.splitStatements(nil) == 0, 'nil を渡しても落ちない')

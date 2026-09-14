@@ -46,6 +46,12 @@ local function money(v)
     return ('%s%.2f'):format(BridgeConfig.currencyLabel or '$', v)
 end
 
+--- 通知には識別名（item）でなく表示名（label）を出す。無ければ識別名にフォールバック
+local function itemLabel(item)
+    local info = exports.dyn_economy:GetItemInfo(item)
+    return (info and info.label) or item
+end
+
 CreateThread(function()
     Adapter = _G.DynAdapters and _G.DynAdapters[BridgeConfig.framework]
     if not Adapter then
@@ -68,7 +74,7 @@ exports('SellToNpc', function(source, item, qty, shopId)
     if not Adapter then return fail(source, 'no_character') end
     local res, err = DynTxFlow.sellToNpc(deps(), source, item, qty, shopId)
     if not res then return fail(source, err) end
-    Adapter.notify(source, ('%s x%d を %s で売りました'):format(item, qty, money(res.total)))
+    Adapter.notify(source, ('%s x%d を %s で売りました'):format(itemLabel(item), qty, money(res.total)))
     return res
 end)
 
@@ -77,7 +83,7 @@ exports('BuyFromNpc', function(source, item, qty, shopId)
     if not Adapter then return fail(source, 'no_character') end
     local res, err = DynTxFlow.buyFromNpc(deps(), source, item, qty, shopId)
     if not res then return fail(source, err) end
-    Adapter.notify(source, ('%s x%d を %s で買いました'):format(item, qty, money(res.total)))
+    Adapter.notify(source, ('%s x%d を %s で買いました'):format(itemLabel(item), qty, money(res.total)))
     return res
 end)
 

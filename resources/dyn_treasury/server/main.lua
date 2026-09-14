@@ -32,6 +32,12 @@ AddEventHandler('dyn_economy:voided', function(tx)
     record(TreasuryMath.entryForVoid(tx))
 end)
 
+--- dyn_trade（個人間取引）は入っていなくても構わない。入っていれば手数料を記帳する
+AddEventHandler('dyn_trade:fee', function(payload)
+    if not TreasuryConfig.enabled then return end
+    record(TreasuryMath.entryForP2PFee(payload))
+end)
+
 --- 直近 30 日の税収。準備金の計算に使う
 local function monthlyIncome()
     if not TreasuryDb.isReady() then return 0 end
