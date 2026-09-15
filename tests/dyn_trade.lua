@@ -39,6 +39,49 @@ do
     near(net, 0, 1e-9, '純額も 0')
 end
 
+-- ===================== TradeMath.deriveUnitPrice (§8.2) =====================
+print()
+print('TradeMath.deriveUnitPrice（dyn_economy への価格フィードバック）')
+do
+    -- A が現金 $50 のみ、B が corn x10 のみ → B が売り手、単価 $5
+    local item, qty, unitPrice = TradeMath.deriveUnitPrice({
+        a = { offer = { items = {}, cash = 50 } },
+        b = { offer = { items = { { item = 'corn', qty = 10 } }, cash = 0 } },
+    })
+    ok(item == 'corn', '品目を検出する')
+    near(qty, 10, 1e-9, '数量を検出する')
+    near(unitPrice, 5.0, 1e-9, '単価 = 現金 / 数量')
+end
+do
+    -- 逆向き（B が現金のみ、A が単一品目）でも対称に検出できる
+    local item, qty, unitPrice = TradeMath.deriveUnitPrice({
+        a = { offer = { items = { { item = 'wheat', qty = 4 } }, cash = 0 } },
+        b = { offer = { items = {}, cash = 20 } },
+    })
+    ok(item == 'wheat', '逆向きでも品目を検出する')
+    near(unitPrice, 5.0, 1e-9, '逆向きでも単価を正しく出す')
+end
+do
+    -- 複数品目・両建て現金は単価に分解できないので nil
+    local item1 = TradeMath.deriveUnitPrice({
+        a = { offer = { items = { { item = 'corn', qty = 1 }, { item = 'wheat', qty = 1 } }, cash = 0 } },
+        b = { offer = { items = {}, cash = 10 } },
+    })
+    ok(item1 == nil, '複数品目の物々交換は記録しない（単価に分解できない）')
+
+    local item2 = TradeMath.deriveUnitPrice({
+        a = { offer = { items = { { item = 'corn', qty = 1 } }, cash = 5 } },
+        b = { offer = { items = {}, cash = 10 } },
+    })
+    ok(item2 == nil, '品目側にも現金が乗っている両建ては記録しない')
+
+    local item3 = TradeMath.deriveUnitPrice({
+        a = { offer = { items = {}, cash = 0 } },
+        b = { offer = { items = {}, cash = 0 } },
+    })
+    ok(item3 == nil, '両者とも空の取引は記録しない')
+end
+
 -- ============================== TradeFlow.finalize ==============================
 print()
 print('TradeFlow.finalize')

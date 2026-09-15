@@ -45,6 +45,7 @@ exports('GetItemInfo', function(item)
     if not it then return nil end
     local sell = DynPricing.quote(item, 1, 'sell')
     local buy  = DynPricing.quote(item, 1, 'buy')
+    local ref  = DynPlayerRef.get(item)
     return {
         item        = item,
         label       = it.label or item,
@@ -58,7 +59,22 @@ exports('GetItemInfo', function(item)
         sellable    = it.npcSellable,
         buyable     = it.npcBuyable,
         fixed       = it.fixed,
+        playerVwap  = ref.vwap,      -- 直近ウィンドウの個人間取引 VWAP（§8.2）。無ければ nil
+        playerQty   = ref.qty,
     }
+end)
+
+--[[
+  個人間取引（dyn_trade 等）の約定 1 件を参考価格として記録する（§8.2）。
+  仮想在庫・基準価格は一切動かさない。Config.PlayerRef.enabled=false なら何もしない。
+]]
+exports('RecordPlayerTrade', function(item, qty, unitPrice)
+    return DynPlayerRef.record(item, qty, unitPrice)
+end)
+
+--- item の直近ウィンドウの VWAP・出来高・サンプル数。記録が無ければ vwap=nil
+exports('GetPlayerVwap', function(item)
+    return DynPlayerRef.get(item)
 end)
 
 --[[

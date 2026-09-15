@@ -29,6 +29,24 @@ Config.Currency = {
 -- 既存サーバーへ後乗せする場合は Phase 5.5 の bootstrap 較正が currency_scale を上書きする。
 Config.Anchor = { item = 'corn', price = 0.75 }
 
+--[[
+  個人間取引（dyn_trade 等）の実売買価格を参考値として集計する（§8.2）。
+
+  記録するのは「現金のみ ⇄ 単一品目のみ」の取引だけ。複数品目・両建て現金は
+  単価に分解できないため対象外（DynVwapMath.deriveUnitPrice が判定する）。
+
+  driftToP0 は既定オフ。オンにすると実勢 VWAP が P0（基準価格）から長期間
+  乖離したとき、P0 自体を 1 日 driftDailyPct ぶんだけゆっくり寄せる（§8.2 の任意機能）。
+  仮想在庫・需給変動（§4）には一切影響しない。
+]]
+Config.PlayerRef = {
+    enabled       = true,
+    windowHours   = 24,      -- VWAP の集計窓
+    driftToP0     = false,   -- ★既定 OFF
+    driftDailyPct = 0.01,    -- driftToP0 有効時、1 日あたりの P0 補正上限
+    driftMinQty   = 20,      -- この取引量に満たない品目は補正しない（標本が薄いと暴れるため）
+}
+
 -- 税（§9.1）。Phase 1〜2 では記帳先の国庫がまだ無いので、
 -- 徴収額の計算と取引ログへの記録だけを行う。
 Config.Tax = {

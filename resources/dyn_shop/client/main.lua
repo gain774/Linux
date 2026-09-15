@@ -86,9 +86,11 @@ local function openShopMenu(payload)
 
     for _, e in ipairs(payload.sell) do
         local fixedTag = e.fixed and ' <span style="opacity:.6;">[固定]</span>' or ''
+        -- 個人間取引のほうが高ければ、NPC に売る損が一目で分かるように出す（§8.2）
+        local vwapTag = e.vwap and (' <span style="opacity:.6;">(個人間実勢 %s)</span>'):format(money(e.vwap)) or ''
         elements[#elements + 1] = {
-            label = ('売る: %s <span style="opacity:.7;">%s / 個</span>%s%s')
-                :format(e.label, money(e.unit), supplyTag(e.supply), fixedTag),
+            label = ('売る: %s <span style="opacity:.7;">%s / 個</span>%s%s%s')
+                :format(e.label, money(e.unit), supplyTag(e.supply), fixedTag, vwapTag),
             desc  = e.desc,
             value = { item = e.item, dir = 'sell', unit = e.unit, label = e.label, desc = e.desc },
         }

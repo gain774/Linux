@@ -49,17 +49,17 @@ local function newSession(srcA, srcB)
     return session
 end
 
---- dyn_economy が入っていれば定価を「目安」として一緒に返す。無くても取引自体は動く
+--- dyn_economy が入っていれば定価と個人間取引の実勢 VWAP（§8.2）を「目安」として返す。無くても取引自体は動く
 local function priceHint(item)
     if GetResourceState('dyn_economy') ~= 'started' then return nil end
     local ok, info = pcall(function() return exports.dyn_economy:GetItemInfo(item) end)
     if not ok or not info then return nil end
-    return info.npcBuy, info.label
+    return info.npcBuy, info.label, info.playerVwap
 end
 
 local function itemDisplay(e)
-    local refPrice, label = priceHint(e.item)
-    return { item = e.item, qty = e.qty, label = label or e.item, refPrice = refPrice }
+    local refPrice, label, vwap = priceHint(e.item)
+    return { item = e.item, qty = e.qty, label = label or e.item, refPrice = refPrice, vwap = vwap }
 end
 
 local function offerPayload(side)
@@ -162,6 +162,14 @@ local function finalizeTrade(session)
     end
 
     recordTx(session, result.feeA, result.feeB)
+
+    -- dyn_economy への参考価格フィードバック（§8.2）。無くても取引自体は成立済みなので黙って無視する
+    if GetResourceState('dyn_economy') == 'started' then
+        local item, qty, unitPrice = TradeMath.deriveUnitPrice(session)
+        if item then
+            pcall(function() exports.dyn_economy:RecordPlayerTrade(item, qty, unitPrice) end)
+        end
+    end
 
     TradeAdapter.notify(A.src, ('取引成立: 受取 %s（手数料 %s）'):format(money(result.netToA), money(result.feeB)))
     TradeAdapter.notify(B.src, ('取引成立: 受取 %s（手数料 %s）'):format(money(result.netToB), money(result.feeA)))

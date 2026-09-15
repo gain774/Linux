@@ -60,6 +60,8 @@ local function buildMenu(src, shopId, shop)
                 unit = q.priceNow, fixed = info.fixed,
                 -- 均衡在庫に対する比率。安い理由が需給なのか一目で分かるようにする
                 supply = info.targetStock > 0 and (info.stock / info.targetStock) or 1.0,
+                -- 個人間取引の実勢 VWAP（§8.2）。NPC に売る損を可視化する参考値
+                vwap = info.playerVwap,
             }
         end
     end

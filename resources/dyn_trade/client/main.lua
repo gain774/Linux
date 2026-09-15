@@ -41,15 +41,23 @@ local function render(sync)
     inTrade = true
     closeTradeMenu()
 
+    -- 定価目安（NPC買取）と個人間取引の実勢 VWAP（§8.2）を並べて表示する
+    local function priceHint(e)
+        local parts = {}
+        if e.refPrice then parts[#parts + 1] = ('定価目安 %s'):format(money(e.refPrice)) end
+        if e.vwap then parts[#parts + 1] = ('実勢 %s'):format(money(e.vwap)) end
+        if #parts == 0 then return '' end
+        return (' <span style="opacity:.6;">(%s)</span>'):format(table.concat(parts, ' / '))
+    end
+
     local elements = {}
     elements[#elements + 1] = { label = ('取引相手: %s'):format(sync.otherName), value = false }
     elements[#elements + 1] = { label = ('手数料 %.0f%%（現金部分から徴収されます）'):format((sync.feeRate or 0) * 100), value = false }
 
     elements[#elements + 1] = { label = '― あなたの提示 ―', value = false }
     for _, e in ipairs(sync.mine.items) do
-        local hint = e.refPrice and (' <span style="opacity:.6;">(定価目安 %s)</span>'):format(money(e.refPrice)) or ''
         elements[#elements + 1] = {
-            label = ('削除: %s x%d%s'):format(e.label, e.qty, hint),
+            label = ('削除: %s x%d%s'):format(e.label, e.qty, priceHint(e)),
             value = { action = 'removeItem', item = e.item },
         }
     end
@@ -61,8 +69,7 @@ local function render(sync)
         elements[#elements + 1] = { label = '（品目なし）', value = false }
     end
     for _, e in ipairs(sync.other.items) do
-        local hint = e.refPrice and (' <span style="opacity:.6;">(定価目安 %s)</span>'):format(money(e.refPrice)) or ''
-        elements[#elements + 1] = { label = ('%s x%d%s'):format(e.label, e.qty, hint), value = false }
+        elements[#elements + 1] = { label = ('%s x%d%s'):format(e.label, e.qty, priceHint(e)), value = false }
     end
     elements[#elements + 1] = { label = ('相手の現金: %s'):format(money(sync.other.cash)), value = false }
 
