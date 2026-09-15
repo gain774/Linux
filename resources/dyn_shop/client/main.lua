@@ -40,6 +40,58 @@ local function setupBlips()
     end
 end
 
+--[[
+  物売り（vendor ped）をその場に立たせる。店舗の建物は要らない — 露店として
+  外に立たせる運用を想定している（購入できる物件ができたら屋内に移す）。
+
+  モデルの読み込みに失敗しても機能は止めない。取引の可否は shop.coords への
+  距離だけで判定しているので、ped が出せなくても店としては引き続き機能する
+  （見た目だけ「誰もいない場所でメニューが開く」に戻るだけ）。
+]]
+local shopPeds = {}
+
+local function spawnShopPed(id, shop)
+    if not shop.ped or not shop.ped.model then return end
+
+    local hash = GetHashKey(shop.ped.model)
+    RequestModel(hash)
+
+    local waited = 0
+    while not HasModelLoaded(hash) and waited < 3000 do
+        Wait(50)
+        waited = waited + 50
+    end
+    if not HasModelLoaded(hash) then
+        print(('[dyn_shop] ped モデル "%s" を読み込めませんでした（%s）。NPC無しで動作します')
+            :format(shop.ped.model, id))
+        return
+    end
+
+    local ped = CreatePed(4, hash, shop.coords.x, shop.coords.y, shop.coords.z - 1.0,
+        shop.heading or 0.0, false, false)
+    SetEntityInvincible(ped, true)
+    SetBlockingOfNonTemporaryEvents(ped, true)
+    FreezeEntityPosition(ped, true)
+    SetModelAsNoLongerNeeded(hash)
+    if shop.ped.scenario then
+        TaskStartScenarioInPlace(ped, shop.ped.scenario, 0, true)
+    end
+    shopPeds[id] = ped
+end
+
+local function setupPeds()
+    for id, shop in pairs(ShopConfig.shops) do
+        spawnShopPed(id, shop)
+    end
+end
+
+AddEventHandler('onResourceStop', function(resource)
+    if resource ~= GetCurrentResourceName() then return end
+    for _, ped in pairs(shopPeds) do
+        if DoesEntityExist(ped) then DeleteEntity(ped) end
+    end
+end)
+
 local function setupPrompts()
     for id, shop in pairs(ShopConfig.shops) do
         local p = PromptRegisterBegin()
@@ -155,6 +207,7 @@ end)
 CreateThread(function()
     setupBlips()
     setupPrompts()
+    setupPeds()
 
     while true do
         local sleep = 1000
