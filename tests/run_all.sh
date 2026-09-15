@@ -28,6 +28,10 @@ echo "== 個人間取引の参考価格集計（§8.2） =="
 "$LUA" tests/vwap.lua
 echo
 
+echo "== 組合・補助金（§9.3〜9.5） =="
+"$LUA" tests/guild.lua
+echo
+
 echo "== 結合テスト（価格スタック） =="
 "$LUA" tests/integration.lua
 echo

@@ -57,6 +57,13 @@ AddEventHandler('dyn_trade:fee', function(payload)
     record(TreasuryMath.entryForP2PFee(payload, TreasuryConfig.defaultState))
 end)
 
+--- dyn_guild（組合・補助金）は入っていなくても構わない。補助金を払ったら
+--- 国庫からの出金として記帳する（§9.2: 流通量が増えるので、国庫側は減らす）
+AddEventHandler('dyn_guild:subsidyPaid', function(payload)
+    if not TreasuryConfig.enabled then return end
+    record(TreasuryMath.entryForSubsidy(payload, payload and payload.state))
+end)
+
 --- 直近 30 日の税収。準備金の計算に使う
 local function monthlyIncome()
     if not TreasuryDb.isReady() then return 0 end

@@ -60,6 +60,25 @@ function TreasuryMath.entryForP2PFee(payload, state)
     }
 end
 
+--- 組合への補助金支払いの記帳（§9.2: 国庫 → 流通への移動）。
+--- @param payload table { amount, payoutId, note }
+--- @param state string|nil 補助を受けた組合の所属州
+function TreasuryMath.entryForSubsidy(payload, state)
+    if type(payload) ~= 'table' then return nil end
+    local amount = tonumber(payload.amount)
+    if not amount or amount <= 0 then return nil end
+
+    return {
+        direction = 'out',
+        source    = 'subsidy',
+        amount    = amount,
+        refType   = 'dyn_subsidy_payouts',
+        refId     = payload.payoutId,
+        note      = payload.note,
+        state     = state or 'unassigned',
+    }
+end
+
 --[[
   「YYYY-Www」形式の週ラベル。年初からの経過日数 ÷ 7 を切り上げた簡略版で、
   ISO 8601 の週番号（年またぎの厳密な規則）ではない。組合補助金の週次予算

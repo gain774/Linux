@@ -19,7 +19,7 @@ cleanup() { $MYSQL -e "DROP DATABASE IF EXISTS \`$DB\`" >/dev/null 2>&1 || true;
 trap cleanup EXIT
 
 # 検証するスキーマ: "<リソース>:<db.lua のグローバル名>"
-SCHEMAS="dyn_economy:DynDb dyn_treasury:TreasuryDb"
+SCHEMAS="dyn_economy:DynDb dyn_treasury:TreasuryDb dyn_guild:GuildDb"
 
 echo "== 1. ファイルをそのまま流す =="
 $MYSQL -e "CREATE DATABASE \`$DB\`"
@@ -49,7 +49,7 @@ for entry in $SCHEMAS; do
 done
 
 echo "== 4. テーブルと主要な列を確認 =="
-EXPECTED="dyn_econ_config dyn_econ_snapshot dyn_item_state dyn_items dyn_npc_tx dyn_price_history dyn_recipe_inputs dyn_recipes dyn_treasury_ledger dyn_wealth_outlier"
+EXPECTED="dyn_econ_config dyn_econ_snapshot dyn_guild_members dyn_guild_shipments dyn_guild_state dyn_guild_subsidy_rules dyn_guilds dyn_item_state dyn_items dyn_npc_tx dyn_price_history dyn_recipe_inputs dyn_recipes dyn_subsidy_payouts dyn_treasury_ledger dyn_wealth_outlier"
 ACTUAL=$($MYSQL -N -B "$DB" -e "SHOW TABLES" | sort | tr '\n' ' ' | sed 's/ $//')
 if [ "$ACTUAL" != "$(echo $EXPECTED)" ]; then
     echo "FAIL: テーブルが一致しません"
@@ -57,12 +57,15 @@ if [ "$ACTUAL" != "$(echo $EXPECTED)" ]; then
     echo "  実際: $ACTUAL"
     exit 1
 fi
-echo "テーブル 10 件 OK"
+echo "テーブル $(echo $EXPECTED | wc -w) 件 OK"
 
 for col in "dyn_npc_tx price_breakdown" "dyn_npc_tx voided" "dyn_items price_index" \
            "dyn_items pinned" "dyn_item_state mat_cost" \
            "dyn_treasury_ledger balance_after" "dyn_treasury_ledger ref_id" \
-           "dyn_econ_snapshot drift" "dyn_econ_snapshot held" "dyn_wealth_outlier mad_score"; do
+           "dyn_treasury_ledger state" "dyn_treasury_ledger period" \
+           "dyn_econ_snapshot drift" "dyn_econ_snapshot held" "dyn_wealth_outlier mad_score" \
+           "dyn_guilds state" "dyn_guilds status" "dyn_guild_members identifier" \
+           "dyn_subsidy_payouts period" "dyn_guild_shipments qty"; do
     set -- $col
     if ! $MYSQL -N -B "$DB" -e "SHOW COLUMNS FROM \`$1\` LIKE '$2'" | grep -q "$2"; then
         echo "FAIL: $1.$2 がありません"; exit 1

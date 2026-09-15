@@ -124,6 +124,24 @@ do
     ok(e.state == 'unassigned', 'P2P手数料は州が特定できないので既定 unassigned')
 end
 
+group('TreasuryMath.entryForSubsidy（組合補助金の支払い記帳）')
+do
+    local e = TreasuryMath.entryForSubsidy({ amount = 42.5, payoutId = 7, note = '農協' }, 'new_hanover')
+    ok(e ~= nil, '金額があれば記帳する')
+    ok(e.direction == 'out', '国庫からの出金として記帳する')
+    ok(e.source == 'subsidy', "source は 'subsidy'")
+    near(e.amount, 42.5, '金額がそのまま入る')
+    ok(e.refType == 'dyn_subsidy_payouts' and e.refId == 7, '参照先が dyn_subsidy_payouts を指す')
+    ok(e.state == 'new_hanover', '組合の所属州が入る')
+end
+ok(TreasuryMath.entryForSubsidy({ amount = 0 }) == nil, '金額 0 は記帳しない')
+ok(TreasuryMath.entryForSubsidy({ amount = -1 }) == nil, '負の金額は記帳しない')
+ok(TreasuryMath.entryForSubsidy(nil) == nil, 'nil を渡しても落ちない')
+do
+    local e = TreasuryMath.entryForSubsidy({ amount = 10 })
+    ok(e.state == 'unassigned', '州を渡さなければ unassigned')
+end
+
 group('TreasuryMath.weekLabel（週次予算サイクルのキー）')
 do
     -- 2026-01-01 00:00:00 UTC のタイムスタンプ
