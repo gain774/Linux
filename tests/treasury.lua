@@ -102,6 +102,52 @@ ok(TreasuryMath.entryForP2PFee({ amount = -1 }) == nil, '負の手数料は記�
 ok(TreasuryMath.entryForP2PFee(nil) == nil, 'nil を渡しても落ちない')
 ok(TreasuryMath.entryForP2PFee('x') == nil, '型が違っても落ちない')
 
+group('州別の記帳（RedM は州で分かれているので税を一つに丸めない）')
+do
+    local e = TreasuryMath.entryForCommit(tx(), 'new_hanover')
+    ok(e.state == 'new_hanover', '渡した州がそのまま入る')
+end
+do
+    local e = TreasuryMath.entryForCommit(tx())
+    ok(e.state == 'unassigned', '州を渡さなければ unassigned')
+end
+do
+    local e = TreasuryMath.entryForVoid(tx(), 'west_elizabeth')
+    ok(e.state == 'west_elizabeth', '取り消しにも州が引き継がれる')
+end
+do
+    local e = TreasuryMath.entryForP2PFee({ amount = 3.5, sessionId = 1 }, 'lemoyne')
+    ok(e.state == 'lemoyne', 'P2P手数料にも州を渡せる')
+end
+do
+    local e = TreasuryMath.entryForP2PFee({ amount = 3.5, sessionId = 1 })
+    ok(e.state == 'unassigned', 'P2P手数料は州が特定できないので既定 unassigned')
+end
+
+group('TreasuryMath.weekLabel（週次予算サイクルのキー）')
+do
+    -- 2026-01-01 00:00:00 UTC のタイムスタンプ
+    local t = os.time({ year = 2026, month = 1, day = 1, hour = 0, min = 0, sec = 0, isdst = false })
+    -- ローカル os.time は環境のTZに依存するので、os.date('!*t', t) で UTC に戻した値と比較する
+    local label = TreasuryMath.weekLabel(t)
+    ok(label:match('^%d%d%d%d%-W%d%d$') ~= nil, ('"YYYY-Wnn" 形式になる (got %s)'):format(label))
+end
+do
+    local labels = {}
+    for day = 0, 20 do
+        local t = os.time({ year = 2026, month = 1, day = 1 + day, hour = 12, min = 0, sec = 0 })
+        labels[#labels + 1] = TreasuryMath.weekLabel(t)
+    end
+    -- 同じ週の中では変わらず、7日ごとに進む（厳密な ISO 週ではなく年初からの簡略連番）
+    ok(labels[1] == labels[7], '同じ週内では同じラベル')
+    ok(labels[1] ~= labels[8], '週をまたぐとラベルが変わる')
+end
+do
+    local t1 = os.time({ year = 2026, month = 6, day = 15, hour = 12, min = 0, sec = 0 })
+    local t2 = os.time({ year = 2027, month = 6, day = 15, hour = 12, min = 0, sec = 0 })
+    ok(TreasuryMath.weekLabel(t1) ~= TreasuryMath.weekLabel(t2), '年が違えばラベルも違う')
+end
+
 print()
 print(('%d passed, %d failed'):format(passed, failed))
 os.exit(failed == 0 and 0 or 1)

@@ -8,8 +8,9 @@ TreasuryMath = {}
 
 --- 取引 1 件から作る記帳。税が無い取引は記帳しない（nil を返す）。
 --- @param tx table dyn_economy:committed のペイロード
---- @return table|nil { direction, source, amount, refType, refId, note }
-function TreasuryMath.entryForCommit(tx)
+--- @param state string|nil 店舗の所在州。不明なら 'unassigned'
+--- @return table|nil { direction, source, amount, refType, refId, note, state }
+function TreasuryMath.entryForCommit(tx, state)
     if type(tx) ~= 'table' then return nil end
     local tax = tonumber(tx.tax)
     if not tax or tax <= 0 then return nil end
@@ -24,13 +25,14 @@ function TreasuryMath.entryForCommit(tx)
         refType   = 'dyn_npc_tx',
         refId     = tx.txId,
         note      = tx.item and (tx.item .. ' x' .. tostring(tx.qty)) or nil,
+        state     = state or 'unassigned',
     }
 end
 
 --- 取り消された取引の打ち消し記帳。
 --- 取り消しで税だけ国庫に残ると、集めていない金が積み上がる。
-function TreasuryMath.entryForVoid(tx)
-    local entry = TreasuryMath.entryForCommit(tx)
+function TreasuryMath.entryForVoid(tx, state)
+    local entry = TreasuryMath.entryForCommit(tx, state)
     if not entry then return nil end
     entry.direction = 'out'
     entry.source    = 'void_refund'
@@ -39,8 +41,10 @@ function TreasuryMath.entryForVoid(tx)
 end
 
 --- 個人間取引（dyn_trade）の手数料を記帳する。
+--- P2P 取引はどの州で成立したか特定できないので、既定では state 未指定
+--- （'unassigned' 扱い）になる。
 --- @param payload table dyn_trade:fee のペイロード { amount, sessionId, note }
-function TreasuryMath.entryForP2PFee(payload)
+function TreasuryMath.entryForP2PFee(payload, state)
     if type(payload) ~= 'table' then return nil end
     local amount = tonumber(payload.amount)
     if not amount or amount <= 0 then return nil end
@@ -52,7 +56,21 @@ function TreasuryMath.entryForP2PFee(payload)
         refType   = 'dyn_p2p_tx',
         refId     = payload.sessionId,
         note      = payload.note,
+        state     = state or 'unassigned',
     }
+end
+
+--[[
+  「YYYY-Www」形式の週ラベル。年初からの経過日数 ÷ 7 を切り上げた簡略版で、
+  ISO 8601 の週番号（年またぎの厳密な規則）ではない。組合補助金の週次予算
+  サイクルが「毎週リセットされる連番」であれば足りるので、厳密な ISO 週より
+  実装をシンプルに保つことを優先している。UTC 基準で決定的に計算する。
+]]
+function TreasuryMath.weekLabel(unixTime)
+    local t = os.date('!*t', unixTime)
+    local dayOfYear = tonumber(os.date('!%j', unixTime))
+    local week = math.floor((dayOfYear - 1) / 7) + 1
+    return ('%04d-W%02d'):format(t.year, week)
 end
 
 --- 残高に記帳を適用した結果

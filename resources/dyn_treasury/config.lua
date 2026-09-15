@@ -18,4 +18,8 @@ TreasuryConfig = {
     autoMigrate = true,
 
     label = '$',
+
+    -- 店舗の所在州が分からない取引（dyn_shop がまだ RegisterShopState を
+    -- 呼んでいない、あるいは店舗自体に state が無い）の記帳先
+    defaultState = 'unassigned',
 }

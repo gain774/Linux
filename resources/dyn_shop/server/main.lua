@@ -128,3 +128,23 @@ end)
 AddEventHandler('playerDropped', function()
     lastTrade[source] = nil
 end)
+
+--[[
+  国庫（dyn_treasury）へ「どの店がどの州にあるか」を伝える。州別・週次の
+  税収集計（§9）に使われる。dyn_treasury を起動していなければ黙って何もしない
+  （依存関係にはしていない。無くても店は普通に動く）。
+]]
+CreateThread(function()
+    -- server.cfg の ensure 順に依存したくないので、開始を少し待ってポーリングする
+    local waited = 0
+    while GetResourceState('dyn_treasury') ~= 'started' and waited < 15000 do
+        Wait(500)
+        waited = waited + 500
+    end
+    if GetResourceState('dyn_treasury') ~= 'started' then return end
+    for id, shop in pairs(ShopConfig.shops) do
+        if shop.state then
+            pcall(function() exports.dyn_treasury:RegisterShopState(id, shop.state) end)
+        end
+    end
+end)
