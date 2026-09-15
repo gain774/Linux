@@ -40,6 +40,10 @@ echo "== 自動較正（§6.2〜6.7） =="
 "$LUA" tests/calibration.lua
 echo
 
+echo "== 目標成長曲線ターゲティング（§7） =="
+"$LUA" tests/progression.lua
+echo
+
 echo "== 結合テスト（価格スタック） =="
 "$LUA" tests/integration.lua
 echo

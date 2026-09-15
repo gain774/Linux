@@ -163,11 +163,20 @@ local function finalizeTrade(session)
 
     recordTx(session, result.feeA, result.feeB)
 
-    -- dyn_economy への参考価格フィードバック（§8.2）。無くても取引自体は成立済みなので黙って無視する
+    -- dyn_economy への参考価格フィードバック（§8.2）と目標成長曲線の実績（§7.5）。
+    -- 無くても取引自体は成立済みなので黙って無視する
     if GetResourceState('dyn_economy') == 'started' then
         local item, qty, unitPrice = TradeMath.deriveUnitPrice(session)
         if item then
             pcall(function() exports.dyn_economy:RecordPlayerTrade(item, qty, unitPrice) end)
+        end
+        if result.netToA > 0 then
+            local idA = TradeAdapter.getIdentifier(A.src)
+            if idA then pcall(function() exports.dyn_economy:RecordEarned(idA, result.netToA) end) end
+        end
+        if result.netToB > 0 then
+            local idB = TradeAdapter.getIdentifier(B.src)
+            if idB then pcall(function() exports.dyn_economy:RecordEarned(idB, result.netToB) end) end
         end
     end
 

@@ -49,7 +49,7 @@ for entry in $SCHEMAS; do
 done
 
 echo "== 4. テーブルと主要な列を確認 =="
-EXPECTED="dyn_econ_config dyn_econ_snapshot dyn_guild_members dyn_guild_shipments dyn_guild_state dyn_guild_subsidy_rules dyn_guilds dyn_item_state dyn_item_yield dyn_items dyn_npc_tx dyn_player_playtime dyn_price_history dyn_recipe_inputs dyn_recipes dyn_subsidy_payouts dyn_treasury_ledger dyn_wealth_outlier"
+EXPECTED="dyn_econ_config dyn_econ_snapshot dyn_guild_members dyn_guild_shipments dyn_guild_state dyn_guild_subsidy_rules dyn_guilds dyn_item_state dyn_item_yield dyn_items dyn_npc_tx dyn_player_playtime dyn_player_progress dyn_price_history dyn_progress_curve dyn_progress_eval dyn_recipe_inputs dyn_recipes dyn_subsidy_payouts dyn_treasury_ledger dyn_wealth_outlier"
 ACTUAL=$($MYSQL -N -B "$DB" -e "SHOW TABLES" | sort | tr '\n' ' ' | sed 's/ $//')
 if [ "$ACTUAL" != "$(echo $EXPECTED)" ]; then
     echo "FAIL: テーブルが一致しません"
@@ -66,7 +66,8 @@ for col in "dyn_npc_tx price_breakdown" "dyn_npc_tx voided" "dyn_items price_ind
            "dyn_econ_snapshot drift" "dyn_econ_snapshot held" "dyn_wealth_outlier mad_score" \
            "dyn_guilds state" "dyn_guilds status" "dyn_guild_members identifier" \
            "dyn_subsidy_payouts period" "dyn_guild_shipments qty" \
-           "dyn_player_playtime hours" "dyn_item_yield est_hourly"; do
+           "dyn_player_playtime hours" "dyn_item_yield est_hourly" \
+           "dyn_player_progress earned_total" "dyn_progress_curve target_value" "dyn_progress_eval coverage"; do
     set -- $col
     if ! $MYSQL -N -B "$DB" -e "SHOW COLUMNS FROM \`$1\` LIKE '$2'" | grep -q "$2"; then
         echo "FAIL: $1.$2 がありません"; exit 1

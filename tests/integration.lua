@@ -36,13 +36,16 @@ dofile(res .. '/server/pricing.lua')
 dofile(res .. '/server/ledger.lua')
 dofile(res .. '/server/recipes.lua')
 
--- 自動較正（§6）。census.lua は使わないので DynCensus は最小限のスタブにする
+-- 自動較正（§6）・目標成長曲線（§7）。census.lua は使わないので DynCensus は最小限のスタブにする
 dofile(res .. '/shared/census_math.lua')
 dofile(res .. '/shared/calibration_math.lua')
-DynCensus = { isHeld = function() return false end }
+dofile(res .. '/shared/progression_math.lua')
+DynCensus = { isHeld = function() return false end, collect = function() return {} end }
 RegisterCommand = function() end
 IsPlayerAceAllowed = function() return true end
+AddEventHandler = function() end
 dofile(res .. '/server/calibration.lua')
+dofile(res .. '/server/progression.lua')
 
 local passed, failed = 0, 0
 local function ok(cond, name, extra)
@@ -289,6 +292,18 @@ Config.Economy.startingMode = 'fixed'
 Config.Economy.startingFixed = 250
 near(DynCalibration.startingCash(), 250, 1e-9, 'fixedモード: 固定額をそのまま返す')
 Config.Economy.startingMode = 'basket'
+
+group('DynProgression (§7)')
+reset()
+do
+    ok(DynProgression.recordEarned('char1', 0) == false, '金額0は記録しない')
+    ok(DynProgression.recordEarned('char1', 50) == true, '正の金額は記録できる（DBが無くても例外を投げない）')
+    near(DynProgression.curveDay0(), 50, 1e-9, 'curveDay0はConfig.Progression.curveの先頭点の値')
+end
+do
+    Config.Progression.enabled = false
+    ok(DynProgression.runDaily() == nil, 'enabled=falseなら何もしない（例外なく返る）')
+end
 
 group('DynCalibration.bootstrapDryRun (§6.2 A)')
 reset()

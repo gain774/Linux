@@ -140,3 +140,40 @@ Config.Calibration = {
     -- （§6.9: 全ての較正は 1 日 1 回・小刻み・クランプ、が安全装置の前提のため）
     dailyStartupDelaySec = 90,
 }
+
+--[[
+  目標成長曲線ターゲティング（§7）。**既定 OFF。** 経済に最も強く介入する
+  レイヤーなので、§6 の較正が安定してから有効にする前提で作られている。
+
+  「§6.7 マネーサプライ PI 制御と競合して発振する」という設計ドキュメントの
+  注意（§7.4）は、そちらが global_mult を、こちらが income_mult を動かす
+  ようにスタック上で分離してあるため、このリソースでは実質的に発生しない
+  （別々の econ キー・別々のスタック段なので取り合いにならない）。
+  ドキュメント通りの挙動が欲しければ `/dyn_toggle moneysupply off` で
+  §6.7 を切ればよい。
+]]
+Config.Progression = {
+    enabled     = false,       -- ★既定 OFF
+    basis       = 'playtime',  -- 'playtime'（推奨） | 'calendar'
+    hoursPerDay = 2.0,         -- basis='playtime' のとき「1 日」とみなす時間
+    metric      = 'earned',    -- 'earned'（推奨） | 'networth'
+
+    curve = {
+        { day = 1,  value =    50 },
+        { day = 3,  value =   180 },
+        { day = 7,  value =   500 },
+        { day = 14, value =  1200 },
+        { day = 30, value =  3000 },
+        { day = 90, value = 12000 },
+    },
+
+    tolerance   = 0.15,   -- ±15% の不感帯
+    maxDailyAdj = 0.03,   -- 1 日あたりの補正上限 ±3%
+    minSamples  = 5,      -- コホートの最低人数
+    Kp          = 0.5,
+    sinkCoupling = 0.0,   -- >0 なら NPC 販売価格も逆向きに動かす（0〜1）
+    bucketWeight = { early = 2.0, mid = 1.0, late = 0.5 },
+
+    activeDays       = 14,  -- 直近この日数ログインしていない人は評価対象外
+    coverageWarn     = 0.5, -- coverage がこれを下回るバケットが続いたら警告して補正を打ち切る
+}

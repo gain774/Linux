@@ -122,3 +122,12 @@ exports('IsReady', function() return DynState.count() > 0 end)
 exports('GetStartingCash', function()
     return DynCalibration.startingCash()
 end)
+
+--[[
+  NPC 経由ではない収入（個人間取引の受取など）を目標成長曲線ターゲティング（§7）の
+  実績に加算する。Config.Progression.enabled = false のときは何もしない
+  （upsertProgress 内部のガードに任せる）
+]]
+exports('RecordEarned', function(identifier, amount)
+    return DynProgression.recordEarned(identifier, amount)
+end)

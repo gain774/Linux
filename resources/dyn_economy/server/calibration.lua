@@ -243,6 +243,7 @@ local TOGGLE_KEYS = {
     wealth      = { get = function() return Config.Calibration.wealth end, set = function(v) Config.Calibration.wealth = v end },
     yield       = { get = function() return Config.Calibration.yield end, set = function(v) Config.Calibration.yield = v end },
     moneysupply = { get = function() return Config.Calibration.moneySupply end, set = function(v) Config.Calibration.moneySupply = v end },
+    progression = { get = function() return Config.Progression.enabled end, set = function(v) Config.Progression.enabled = v end },
     pricelevel  = { get = function() return Config.PriceLevel.enabled end, set = function(v) Config.PriceLevel.enabled = v end },
     tax         = { get = function() return Config.Tax.enabled end, set = function(v) Config.Tax.enabled = v end },
 }

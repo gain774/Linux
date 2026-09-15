@@ -1,5 +1,8 @@
 --[[
-  §6.6 収集効率アンカーの入力になる「1日あたりのプレイ時間」を実測する。
+  「1日あたりのプレイ時間」を実測する。§6.6（収集効率アンカー）は日別
+  （dyn_player_playtime）、§7 の basis='playtime'（目標成長曲線）は累計
+  （dyn_player_progress.playtime_hours）を見るので、両方を同じティックで
+  積み上げる。
 
   厳密な接続・切断イベントでの計測は、クラッシュやリスタートで片方だけ
   記録されると狂うので、一定間隔でその時点の接続者に加算していく方式にする
@@ -30,17 +33,42 @@ local function connectedIdentifiers()
     return ids
 end
 
+--- §6.6（収集効率アンカー）と §7 の basis='playtime'（目標成長曲線）の
+--- どちらかが要る間だけ計測する。どちらも要らなければ何もしない
+local function needed()
+    local yieldOn = Config.Calibration and Config.Calibration.enabled and Config.Calibration.yield
+    local progressionOn = Config.Progression and Config.Progression.enabled and Config.Progression.basis == 'playtime'
+    return yieldOn or progressionOn
+end
+
 local function tick()
-    if not Config.Calibration or not Config.Calibration.enabled or not Config.Calibration.yield then return end
+    if not needed() then return end
     if not DynDb.isReady() then return end
 
     local hours = tickMinutes() / 60
+    local yieldOn = Config.Calibration and Config.Calibration.enabled and Config.Calibration.yield
+    local progressionOn = Config.Progression and Config.Progression.enabled and Config.Progression.basis == 'playtime'
+
     for _, identifier in ipairs(connectedIdentifiers()) do
-        DynDb.execute([[
-            INSERT INTO dyn_player_playtime (identifier, day, hours)
-            VALUES (?, CURDATE(), ?)
-            ON DUPLICATE KEY UPDATE hours = hours + VALUES(hours)
-        ]], { identifier, hours })
+        if yieldOn then
+            DynDb.execute([[
+                INSERT INTO dyn_player_playtime (identifier, day, hours)
+                VALUES (?, CURDATE(), ?)
+                ON DUPLICATE KEY UPDATE hours = hours + VALUES(hours)
+            ]], { identifier, hours })
+        end
+        if progressionOn then
+            -- dyn_player_progress の行はまだ無いかもしれない（NPC取引がまだ無い新規プレイヤー）ので
+            -- INSERT ... ON DUPLICATE KEY UPDATE で無ければ作る
+            DynDb.execute([[
+                INSERT INTO dyn_player_progress (identifier, first_seen, last_seen, playtime_hours, updated_at)
+                VALUES (?, NOW(), NOW(), ?, NOW())
+                ON DUPLICATE KEY UPDATE
+                    last_seen      = NOW(),
+                    playtime_hours = playtime_hours + VALUES(playtime_hours),
+                    updated_at     = NOW()
+            ]], { identifier, hours })
+        end
     end
 end
 

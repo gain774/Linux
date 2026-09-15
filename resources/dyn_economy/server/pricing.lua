@@ -12,9 +12,21 @@ function DynPricing.personalMultiplier(_identifier, _item, _direction)
     return 1.0
 end
 
---- 成長曲線による補正（§7）。既定 OFF なので 1.0。
-function DynPricing.incomeMultiplier()
-    return DynState.econ('income_mult') or 1.0
+--[[
+  成長曲線による補正（§7）。既定 OFF なので income_mult=1.0 のまま。
+
+  direction='sell'（プレイヤーが NPC に売る＝ npc_buy_price ＝金のソース）に
+  完全に連動する。direction='buy'（npc_sell_price ＝ 物価）は既定では動かない。
+  `Config.Progression.sinkCoupling` を 0 より大きくした場合だけ、
+  income_mult^(-sinkCoupling) で逆向きに（緩く）動かす（§7.3 の任意機能）。
+]]
+function DynPricing.incomeMultiplier(direction)
+    local mult = DynState.econ('income_mult')
+    if direction == 'sell' then return mult end
+
+    local coupling = Config.Progression and Config.Progression.sinkCoupling or 0
+    if not coupling or coupling <= 0 then return 1.0 end
+    return mult ^ (-coupling)
 end
 
 --[[
@@ -50,7 +62,8 @@ local function composeBase(it, direction, identifier)
     b.cpi    = Config.PriceLevel.enabled and DynState.econ('cpi_mult') or 1.0  -- 3. 物価水準
     b.cat    = Config.PriceLevel.enabled and DynState.categoryMult(it.category) or 1.0
     -- 4. 成長曲線補正は金のソース側（プレイヤーが NPC に売る側）にだけ掛ける
-    b.income = (direction == 'sell') and DynPricing.incomeMultiplier() or 1.0
+    -- （sinkCoupling > 0 のときだけ買う側にも弱く逆連動する。既定は 0 で 1.0 のまま）
+    b.income = DynPricing.incomeMultiplier(direction)
     b.global   = DynPricing.globalMultiplier(direction)             -- 4.5 マネーサプライ PI（§6.7）
     b.wealth   = DynPricing.wealthMultiplier(direction)              -- 4.6 所持金分布への追従（§6.5）
     b.personal = DynPricing.personalMultiplier(identifier, it.item, direction)

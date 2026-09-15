@@ -135,3 +135,36 @@ CREATE TABLE IF NOT EXISTS dyn_item_yield (
   applied         TINYINT(1)  NOT NULL DEFAULT 0,
   PRIMARY KEY (item, day)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 目標成長曲線ターゲティング（§7、既定OFF）
+CREATE TABLE IF NOT EXISTS dyn_player_progress (
+  identifier      VARCHAR(64)   NOT NULL PRIMARY KEY,
+  first_seen      DATETIME      NOT NULL,
+  last_seen       DATETIME      NOT NULL,
+  playtime_hours  DECIMAL(12,2) NOT NULL DEFAULT 0,
+  earned_total    DECIMAL(16,2) NOT NULL DEFAULT 0,  -- NPC売却 + 個人間取引の受取累計
+  spent_total     DECIMAL(16,2) NOT NULL DEFAULT 0,  -- NPC購入の支払累計
+  networth        DECIMAL(16,2) NOT NULL DEFAULT 0,  -- 直近の評価時点での所持金+銀行残高
+  earned_at_eval  DECIMAL(16,2) NOT NULL DEFAULT 0,  -- 前回評価時点の earned_total（§7.6 coverage の差分算出用）
+  updated_at      DATETIME      NOT NULL,
+  INDEX idx_last_seen (last_seen)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 曲線を DB に置き、再起動なしで編集できるようにする（行が無ければ config の値を使う）
+CREATE TABLE IF NOT EXISTS dyn_progress_curve (
+  day_index    DECIMAL(8,2)  NOT NULL PRIMARY KEY,
+  target_value DECIMAL(16,2) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 判断の履歴。なぜその倍率になったかを後から追える
+CREATE TABLE IF NOT EXISTS dyn_progress_eval (
+  evaluated_at DATETIME      NOT NULL,
+  bucket       VARCHAR(16)   NOT NULL,
+  n            INT           NOT NULL,
+  median_value DECIMAL(16,2) NOT NULL,
+  target_value DECIMAL(16,2) NOT NULL,
+  ratio        DECIMAL(10,4) NOT NULL,
+  applied_mult DECIMAL(10,4) NOT NULL,
+  coverage     DECIMAL(6,3)  NULL,
+  PRIMARY KEY (evaluated_at, bucket)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
