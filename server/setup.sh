@@ -101,7 +101,7 @@ done
 
 # ------------------------------------------------------------------ dyn_*
 say "動的経済のリソースを配置"
-for r in dyn_economy dyn_economy_bridge dyn_shop dyn_treasury; do
+for r in dyn_economy dyn_economy_bridge dyn_shop dyn_treasury dyn_trade dyn_guild dyn_admin; do
     DEST="$ROOT/server-data/resources/[dyn]/$r"
     rm -rf "$DEST"
     # 開発しながら試せるようにシンボリックリンクにする。
@@ -138,7 +138,13 @@ fi
 say "server.cfg を配置"
 CFG="$ROOT/server-data/server.cfg"
 if [ -f "$CFG" ]; then
-    warn "既にあるので上書きしません: $CFG"
+    warn "既にあるので中身は上書きしません: $CFG"
+    # ライセンスキーなど手で書いた内容は守りつつ、新しく増えた dyn_* リソースの
+    # `ensure` 行だけは追記する（無ければ）。これをしないと、リポジトリ側に
+    # リソースを追加しても既存の server.cfg には一切反映されず、起動しない。
+    for r in dyn_economy dyn_economy_bridge dyn_treasury dyn_shop dyn_trade dyn_guild dyn_admin; do
+        grep -qE "^\s*ensure\s+$r\s*$" "$CFG" || { echo "ensure $r" >> "$CFG"; echo "  追記: ensure $r"; }
+    done
 else
     cp "$REPO/server/server.cfg" "$CFG"
     if [ -n "${DB_PASSWORD:-}" ]; then
