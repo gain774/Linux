@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>dyn_admin</title>
+<style>
+  :root {
+    --bg: rgba(20, 16, 12, 0.94);
+    --panel: #241d16;
+    --panel2: #2c231a;
+    --border: #4a3c2a;
+    --text: #e9ddc8;
+    --muted: #a3927a;
+    --accent: #c9a24a;
+    --danger: #b5533f;
+    --ok: #6f9e5c;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; width: 100%; height: 100%;
+    background: transparent;
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+    color: var(--text);
+    display: none;
+  }
+  body.open { display: block; }
+
+  #root {
+    position: fixed;
+    top: 4vh; left: 50%; transform: translateX(-50%);
+    width: min(1000px, 92vw);
+    max-height: 92vh;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    box-shadow: 0 10px 40px rgba(0,0,0,.6);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+
+  header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 18px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+  }
+  header h1 { font-size: 16px; margin: 0; letter-spacing: .04em; color: var(--accent); flex: 0 0 auto; }
+  header .tabs { display: flex; gap: 4px; flex: 1; }
+  header button.tab {
+    background: none; border: 1px solid transparent; color: var(--muted);
+    padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px;
+  }
+  header button.tab.active { color: var(--text); border-color: var(--border); background: var(--panel2); }
+  header .spacer { flex: 1; }
+  header button.icon {
+    background: none; border: 1px solid var(--border); color: var(--muted);
+    padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 12px;
+  }
+  header button.icon:hover { color: var(--text); border-color: var(--accent); }
+
+  main { padding: 14px 18px; overflow-y: auto; flex: 1; }
+  .view { display: none; }
+  .view.active { display: block; }
+
+  .row { display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+  .stat {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 4px;
+    padding: 10px 14px; min-width: 140px;
+  }
+  .stat .label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+  .stat .value { font-size: 18px; margin-top: 2px; }
+
+  input[type=text] {
+    background: var(--panel2); border: 1px solid var(--border); color: var(--text);
+    padding: 6px 10px; border-radius: 4px; font-size: 13px; width: 240px;
+  }
+
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 8px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+  tr:hover td { background: rgba(255,255,255,.02); }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .tag { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 11px; border: 1px solid var(--border); color: var(--muted); }
+  .tag.fixed { color: var(--accent); border-color: var(--accent); }
+  .bar { position: relative; width: 70px; height: 6px; background: var(--panel2); border-radius: 3px; overflow: hidden; display: inline-block; vertical-align: middle; margin-right: 6px; }
+  .bar > span { position: absolute; inset: 0; background: var(--accent); }
+
+  button.act {
+    background: var(--panel2); border: 1px solid var(--border); color: var(--text);
+    padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; margin-right: 4px;
+  }
+  button.act:hover { border-color: var(--accent); }
+  button.act.danger { color: var(--danger); }
+  button.act.ok { color: var(--ok); }
+
+  .empty { color: var(--muted); padding: 20px 0; text-align: center; font-size: 13px; }
+  .section-title { font-size: 13px; color: var(--muted); margin: 18px 0 6px; text-transform: uppercase; letter-spacing: .05em; }
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: var(--panel); border: 1px solid var(--border); color: var(--text);
+    padding: 8px 16px; border-radius: 4px; font-size: 13px; opacity: 0; transition: opacity .25s;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+  <div id="root" style="display:none">
+    <header>
+      <h1>DYN ADMIN</h1>
+      <div class="tabs">
+        <button class="tab active" data-view="prices">価格・在庫</button>
+        <button class="tab" data-view="treasury">税収</button>
+        <button class="tab" data-view="guilds">組合</button>
+      </div>
+      <div class="spacer"></div>
+      <button class="icon" id="btnRefresh">更新</button>
+      <button class="icon" id="btnClose">閉じる (Esc)</button>
+    </header>
+    <main>
+      <div class="view active" id="view-prices">
+        <div class="row">
+          <input type="text" id="priceFilter" placeholder="品目名で絞り込み...">
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>品目</th><th>カテゴリ</th><th>在庫/目標</th>
+              <th class="num">NPC買取</th><th class="num">NPC販売</th><th class="num">個人間実勢</th>
+              <th>状態</th><th></th>
+            </tr>
+          </thead>
+          <tbody id="priceRows"></tbody>
+        </table>
+        <div class="empty" id="priceEmpty" style="display:none">dyn_economy が起動していないか、品目がありません</div>
+      </div>
+
+      <div class="view" id="view-treasury">
+        <div class="row" id="treasuryStats"></div>
+        <div class="section-title">今週の州別税収</div>
+        <table>
+          <thead><tr><th>州</th><th class="num">純税収</th><th class="num">件数</th></tr></thead>
+          <tbody id="stateRows"></tbody>
+        </table>
+        <div class="empty" id="treasuryEmpty" style="display:none">dyn_treasury が起動していません</div>
+      </div>
+
+      <div class="view" id="view-guilds">
+        <div class="section-title">承認待ち</div>
+        <table>
+          <thead><tr><th>#</th><th>名称</th><th>カテゴリ</th><th>州</th><th>発起人</th><th>人数</th><th></th></tr></thead>
+          <tbody id="guildPendingRows"></tbody>
+        </table>
+        <div class="empty" id="guildPendingEmpty" style="display:none">承認待ちの申請はありません</div>
+
+        <div class="section-title">承認済み</div>
+        <table>
+          <thead><tr><th>#</th><th>名称</th><th>カテゴリ</th><th>州</th><th>人数</th><th></th></tr></thead>
+          <tbody id="guildApprovedRows"></tbody>
+        </table>
+        <div class="empty" id="guildApprovedEmpty" style="display:none">承認済みの組合はありません</div>
+        <div class="empty" id="guildDisabledEmpty" style="display:none">dyn_guild が起動していないか、無効になっています</div>
+      </div>
+    </main>
+  </div>
+  <div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  var state = { data: null };
+
+  function money(v) {
+    if (v === null || v === undefined) return '—';
+    return '$' + Number(v).toFixed(2);
+  }
+
+  function post(name, body) {
+    fetch('https://' + (window.GetParentResourceName ? GetParentResourceName() : 'dyn_admin') + '/' + name, {
+      method: 'POST', headers: { 'Content-Type': 'application/json; charset=UTF-8' },
+      body: JSON.stringify(body || {}),
+    });
+  }
+
+  function showToast(text) {
+    var t = document.getElementById('toast');
+    t.textContent = text;
+    t.classList.add('show');
+    setTimeout(function () { t.classList.remove('show'); }, 2200);
+  }
+
+  // ---------------------------------------------------------------- tabs
+  document.querySelectorAll('header .tab').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      document.querySelectorAll('header .tab').forEach(function (b) { b.classList.remove('active'); });
+      document.querySelectorAll('main .view').forEach(function (v) { v.classList.remove('active'); });
+      btn.classList.add('active');
+      document.getElementById('view-' + btn.dataset.view).classList.add('active');
+    });
+  });
+
+  document.getElementById('btnClose').addEventListener('click', function () { post('close'); closeUi(); });
+  document.getElementById('btnRefresh').addEventListener('click', function () { post('refresh'); });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') { post('close'); closeUi(); }
+  });
+
+  function closeUi() {
+    document.body.classList.remove('open');
+    document.getElementById('root').style.display = 'none';
+  }
+
+  // ---------------------------------------------------------------- prices
+  function supplyBar(ratio) {
+    if (ratio === null || ratio === undefined) return '';
+    var pct = Math.max(0, Math.min(1, ratio / 2)) * 100;
+    var color = ratio >= 1.4 ? '#c66' : (ratio <= 0.7 ? '#6c9' : '#c9a24a');
+    return '<span class="bar"><span style="width:' + pct + '%;background:' + color + '"></span></span>';
+  }
+
+  function renderPrices() {
+    var items = (state.data && state.data.items) || [];
+    var filter = (document.getElementById('priceFilter').value || '').toLowerCase();
+    var rows = items.filter(function (it) {
+      return !filter || (it.item || '').toLowerCase().indexOf(filter) >= 0 ||
+             (it.label || '').toLowerCase().indexOf(filter) >= 0;
+    });
+
+    var tbody = document.getElementById('priceRows');
+    tbody.innerHTML = rows.map(function (it) {
+      var ratio = it.targetStock ? (it.stock / it.targetStock) : null;
+      var fixedTag = it.fixed ? '<span class="tag fixed">固定</span>' : '<span class="tag">変動</span>';
+      return '<tr>' +
+        '<td>' + esc(it.label || it.item) + '<div style="color:var(--muted);font-size:11px">' + esc(it.item) + '</div></td>' +
+        '<td>' + esc(it.category || '') + '</td>' +
+        '<td>' + supplyBar(ratio) + (ratio !== null ? (ratio * 100).toFixed(0) + '%' : '—') + '</td>' +
+        '<td class="num">' + money(it.npcBuy) + '</td>' +
+        '<td class="num">' + money(it.npcSell) + '</td>' +
+        '<td class="num">' + money(it.playerVwap) + '</td>' +
+        '<td>' + fixedTag + '</td>' +
+        '<td><button class="act" data-item="' + esc(it.item) + '" data-fixed="' + (!it.fixed) + '">' +
+          (it.fixed ? '変動に戻す' : '固定にする') + '</button></td>' +
+        '</tr>';
+    }).join('');
+
+    document.getElementById('priceEmpty').style.display = rows.length ? 'none' : 'block';
+
+    tbody.querySelectorAll('button.act').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        post('action', { kind: 'setFixed', payload: { item: btn.dataset.item, fixed: btn.dataset.fixed === 'true' } });
+        showToast(esc(btn.dataset.item) + ' を更新しました');
+      });
+    });
+  }
+  document.getElementById('priceFilter').addEventListener('input', renderPrices);
+
+  // ---------------------------------------------------------------- treasury
+  function renderTreasury() {
+    var t = state.data && state.data.treasury;
+    document.getElementById('treasuryEmpty').style.display = t ? 'none' : 'block';
+    document.getElementById('treasuryStats').innerHTML = t ? [
+      ['国庫残高', money(t.balance)],
+      ['準備金', money(t.reserve)],
+      ['補助金に回せる額', money(t.spendable)],
+      ['今週', t.period || '—'],
+    ].map(statHtml).join('') : '';
+
+    var rows = (t && t.states) || [];
+    document.getElementById('stateRows').innerHTML = rows.map(function (r) {
+      return '<tr><td>' + esc(r.state) + '</td><td class="num">' + money(r.total) + '</td><td class="num">' + (r.count || 0) + '</td></tr>';
+    }).join('') || '';
+  }
+  function statHtml(pair) {
+    return '<div class="stat"><div class="label">' + pair[0] + '</div><div class="value">' + pair[1] + '</div></div>';
+  }
+
+  // ---------------------------------------------------------------- guilds
+  function renderGuilds() {
+    var g = state.data && state.data.guilds;
+    var enabled = g && g.enabled;
+    document.getElementById('guildDisabledEmpty').style.display = enabled ? 'none' : 'block';
+
+    var pending = (g && g.pending) || [];
+    document.getElementById('guildPendingEmpty').style.display = (enabled && pending.length === 0) ? 'block' : 'none';
+    document.getElementById('guildPendingRows').innerHTML = pending.map(function (r) {
+      return '<tr><td>' + r.id + '</td><td>' + esc(r.name) + '</td><td>' + esc(r.category) + '</td><td>' + esc(r.state) +
+        '</td><td>' + esc(r.founder) + '</td><td>' + r.memberCount + '</td><td>' +
+        '<button class="act ok" data-act="approveGuild" data-id="' + r.id + '">承認</button>' +
+        '<button class="act danger" data-act="rejectGuild" data-id="' + r.id + '">却下</button></td></tr>';
+    }).join('');
+
+    var approved = (g && g.approved) || [];
+    document.getElementById('guildApprovedEmpty').style.display = (enabled && approved.length === 0) ? 'block' : 'none';
+    document.getElementById('guildApprovedRows').innerHTML = approved.map(function (r) {
+      return '<tr><td>' + r.id + '</td><td>' + esc(r.name) + '</td><td>' + esc(r.category) + '</td><td>' + esc(r.state) +
+        '</td><td>' + r.memberCount + '</td><td>' +
+        '<button class="act danger" data-act="revokeGuild" data-id="' + r.id + '">承認取消</button></td></tr>';
+    }).join('');
+
+    document.querySelectorAll('#view-guilds button.act').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var kind = btn.dataset.act;
+        var id = Number(btn.dataset.id);
+        var reason = null;
+        if (kind === 'rejectGuild' || kind === 'revokeGuild') {
+          reason = window.prompt('理由（任意）') || '';
+        }
+        post('action', { kind: kind, payload: { id: id, reason: reason } });
+        showToast('処理しました');
+      });
+    });
+  }
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function renderAll() {
+    renderPrices();
+    renderTreasury();
+    renderGuilds();
+  }
+
+  window.addEventListener('message', function (e) {
+    var msg = e.data || {};
+    if (msg.action === 'init') {
+      state.data = msg.data;
+      document.body.classList.add('open');
+      document.getElementById('root').style.display = 'flex';
+      renderAll();
+    } else if (msg.action === 'close') {
+      closeUi();
+    } else if (msg.action === 'actionResult') {
+      if (msg.data && msg.data.ok === false) showToast('失敗: ' + (msg.data.error || '不明なエラー'));
+    }
+  });
+})();
+</script>
+</body>
+</html>
