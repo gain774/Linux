@@ -204,7 +204,23 @@ function DynState.setMatCost(itemName, cost)
     return true
 end
 
+--- アイテム間の相対価値を書き換える（§6.6 収集効率アンカー用）。
+--- DB に永続化する（fixed と同じく、環境をまたいで引き継ぎたい運用値のため）
+function DynState.setPriceIndex(itemName, value)
+    local it = items[itemName]
+    if not it or not value or value <= 0 then return false end
+    it.priceIndex = value
+    if DynDb.isReady() then
+        DynDb.execute('UPDATE dyn_items SET price_index = ? WHERE item = ?', { value, itemName })
+    end
+    return true
+end
+
 function DynState.econ(key) return econ[key] or 1.0 end
+
+--- econ() は未設定キーに 1.0（倍率の既定）を返すが、積分項のように 0 が
+--- 正しい既定値のキーもあるので、呼び出し側が既定値を指定できる版
+function DynState.econOr(key, default) return econ[key] or default end
 
 function DynState.setEcon(key, value)
     econ[key] = value

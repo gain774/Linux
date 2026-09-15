@@ -114,3 +114,24 @@ CREATE TABLE IF NOT EXISTS dyn_wealth_outlier (
   PRIMARY KEY (detected_at, identifier),
   INDEX idx_reviewed (reviewed, detected_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- §6.6 収集効率アンカー。プレイ時間あたりの NPC 売却量を実測するための土台
+CREATE TABLE IF NOT EXISTS dyn_player_playtime (
+  identifier VARCHAR(64) NOT NULL,
+  day        DATE        NOT NULL,
+  hours      DECIMAL(8,3) NOT NULL DEFAULT 0,
+  PRIMARY KEY (identifier, day)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 日次の時給集計（dyn_npc_tx + dyn_player_playtime から計算した結果のキャッシュ／監査ログ）
+CREATE TABLE IF NOT EXISTS dyn_item_yield (
+  item            VARCHAR(64) NOT NULL,
+  day             DATE        NOT NULL,
+  qty_sold        INT         NOT NULL,
+  unique_sellers  INT         NOT NULL,
+  playtime_hours  DECIMAL(10,2) NOT NULL,
+  est_rate        DECIMAL(12,4) NOT NULL,
+  est_hourly      DECIMAL(12,2) NOT NULL,
+  applied         TINYINT(1)  NOT NULL DEFAULT 0,
+  PRIMARY KEY (item, day)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

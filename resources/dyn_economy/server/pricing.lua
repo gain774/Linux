@@ -17,6 +17,31 @@ function DynPricing.incomeMultiplier()
     return DynState.econ('income_mult') or 1.0
 end
 
+--[[
+  マネーサプライ PI 制御（§6.7）。金の総量の増え方そのものを目標に寄せる最後の
+  安全網。direction='sell'（プレイヤーが NPC に売る = NPC 買取 = 金のソース）には
+  global_mult_buy、direction='buy'（NPC 販売 = 金のシンク）には global_mult_sell を
+  掛ける。キーの命名は設計ドキュメント §6.7 の「NPC からみた buy/sell」に
+  合わせてあるので、このコードの direction（プレイヤー視点）とは向きが逆になる。
+  Config.Calibration.moneySupply が OFF の間は econOr の既定 1.0 のまま。
+]]
+function DynPricing.globalMultiplier(direction)
+    if not Config.Calibration or not Config.Calibration.moneySupply then return 1.0 end
+    local key = (direction == 'sell') and 'global_mult_buy' or 'global_mult_sell'
+    return DynState.econ(key)
+end
+
+--[[
+  所持金分布への追従（§6.5）。direction='buy'（NPC 販売＝プレイヤーが払う側）は
+  wealth_mult に完全連動、direction='sell'（NPC 買取＝プレイヤーの稼ぎ）は
+  wealthSinkCoupling（既定 β=0.5）だけ弱めて連動する。
+]]
+function DynPricing.wealthMultiplier(direction)
+    if not Config.Calibration or not Config.Calibration.wealth then return 1.0 end
+    local coupling = (direction == 'buy') and 1.0 or (Config.Calibration.wealthSinkCoupling or 0.5)
+    return CalibrationMath.wealthCoupling(DynState.econ('wealth_mult'), coupling)
+end
+
 --- 価格スタック 1〜4 段目。需給（5 段目）より前の「基準価格」を組み立てる。
 local function composeBase(it, direction, identifier)
     local b = {}
@@ -26,8 +51,10 @@ local function composeBase(it, direction, identifier)
     b.cat    = Config.PriceLevel.enabled and DynState.categoryMult(it.category) or 1.0
     -- 4. 成長曲線補正は金のソース側（プレイヤーが NPC に売る側）にだけ掛ける
     b.income = (direction == 'sell') and DynPricing.incomeMultiplier() or 1.0
+    b.global   = DynPricing.globalMultiplier(direction)             -- 4.5 マネーサプライ PI（§6.7）
+    b.wealth   = DynPricing.wealthMultiplier(direction)              -- 4.6 所持金分布への追従（§6.5）
     b.personal = DynPricing.personalMultiplier(identifier, it.item, direction)
-    local p0 = b.index * b.scale * b.cpi * b.cat * b.income
+    local p0 = b.index * b.scale * b.cpi * b.cat * b.income * b.global * b.wealth
     return p0, b
 end
 

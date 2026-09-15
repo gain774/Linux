@@ -36,6 +36,14 @@ dofile(res .. '/server/pricing.lua')
 dofile(res .. '/server/ledger.lua')
 dofile(res .. '/server/recipes.lua')
 
+-- 自動較正（§6）。census.lua は使わないので DynCensus は最小限のスタブにする
+dofile(res .. '/shared/census_math.lua')
+dofile(res .. '/shared/calibration_math.lua')
+DynCensus = { isHeld = function() return false end }
+RegisterCommand = function() end
+IsPlayerAceAllowed = function() return true end
+dofile(res .. '/server/calibration.lua')
+
 local passed, failed = 0, 0
 local function ok(cond, name, extra)
     if cond then passed = passed + 1
@@ -56,11 +64,16 @@ local function reset()
     DynState.setEcon('currency_scale', 1.0)
     DynState.setEcon('cpi_mult', 1.0)
     DynState.setEcon('income_mult', 1.0)
+    DynState.setEcon('global_mult_buy', 1.0)
+    DynState.setEcon('global_mult_sell', 1.0)
+    DynState.setEcon('wealth_mult', 1.0)
     Config.Dynamic.enabled = true
     Config.Recipes.enabled = true
     Config.PriceLevel.enabled = true
     Config.Tax.enabled = true
     Config.Tax.sellShare = 0.5
+    Config.Calibration.moneySupply = false
+    Config.Calibration.wealth = false
     -- 精度を見るテストでは丸めを切る。丸めそのものは専用のグループで検証する
     Config.Currency.step = 0
 end
@@ -234,6 +247,58 @@ reset()
 local c = DynPricing.commitBuy('player2', 'corn', 50, 'shop_a')
 near(c.stockBefore - c.stockAfter, 50, 1e-6, '購入で在庫が減る')
 ok(c.total > 0, '購入額が返る')
+
+group('マネーサプライ PI 補正は方向によって逆に効く (§6.7)')
+reset()
+Config.Calibration.moneySupply = true
+local baseSell = DynPricing.quoteSell('corn', 1).total
+local baseBuy  = DynPricing.quoteBuy('corn', 1).total
+DynState.setEcon('global_mult_buy', 0.9)   -- NPC 買取(=direction sell)を絞る
+DynState.setEcon('global_mult_sell', 1.1)  -- NPC 販売(=direction buy)を上げる
+near(DynPricing.quoteSell('corn', 1).total, baseSell * 0.9, 1e-6, 'global_mult_buy は direction=sell に効く')
+near(DynPricing.quoteBuy('corn', 1).total, baseBuy * 1.1, 1e-6, 'global_mult_sell は direction=buy に効く')
+Config.Calibration.moneySupply = false
+near(DynPricing.quoteSell('corn', 1).total, baseSell, 1e-6, 'moneySupply=false なら econ値があっても効かない（キルスイッチ）')
+
+group('所持金分布への追従は非対称に効く (§6.5)')
+reset()
+Config.Calibration.wealth = true
+Config.Calibration.wealthSinkCoupling = 0.5
+local wBaseSell = DynPricing.quoteSell('corn', 1).total
+local wBaseBuy  = DynPricing.quoteBuy('corn', 1).total
+DynState.setEcon('wealth_mult', 1.44)  -- 1.44^0.5 = 1.2 で綺麗な数にする
+near(DynPricing.quoteBuy('corn', 1).total, wBaseBuy * 1.44, 1e-6,
+     'direction=buy（NPC販売=プレイヤーの支払い）は完全連動')
+near(DynPricing.quoteSell('corn', 1).total, wBaseSell * 1.2, 1e-6,
+     'direction=sell（NPC買取=プレイヤーの稼ぎ）はcoupling分だけ弱まる (1.44^0.5=1.2)')
+Config.Calibration.wealth = false
+
+group('DynCalibration.startingCash (§6.3)')
+reset()
+Config.Economy.startingMode = 'basket'
+Config.Economy.startingBaskets = 2.0
+local expectedBasket = 0
+for _, item in ipairs(Config.Census.basket) do
+    -- census.lua の basketPrice() と同じく priceNow（限界価格）を使う。
+    -- quoteBuy(...).total は1個ぶんの積分値で、priceNowとはわずかに異なる
+    expectedBasket = expectedBasket + DynPricing.quote(item, 1, 'buy').priceNow
+end
+near(DynCalibration.startingCash(), expectedBasket * 2.0, 1e-6,
+     'basketモード: 基準バスケット価格 × startingBaskets')
+Config.Economy.startingMode = 'fixed'
+Config.Economy.startingFixed = 250
+near(DynCalibration.startingCash(), 250, 1e-9, 'fixedモード: 固定額をそのまま返す')
+Config.Economy.startingMode = 'basket'
+
+group('DynCalibration.bootstrapDryRun (§6.2 A)')
+reset()
+do
+    local existing = {}
+    for name, it in pairs(DynState.all()) do existing[name] = it.priceIndex * 3.0 end
+    local r = DynCalibration.bootstrapDryRun(existing)
+    near(r.scale, 3.0, 1e-6, '全品目が同じ倍率なら中央値がそのままscaleになる')
+    ok(#r.outliers == 0, '比が揃っていれば外れ値なし')
+end
 
 print()
 print(('%d passed, %d failed'):format(passed, failed))

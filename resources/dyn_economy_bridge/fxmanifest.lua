@@ -15,6 +15,7 @@ server_scripts {
     'server/vorp.lua',
     'server/compat.lua',
     'server/bridge.lua',
+    'server/newchar.lua',
 }
 
 dependencies {

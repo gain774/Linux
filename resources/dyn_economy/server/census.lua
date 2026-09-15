@@ -183,6 +183,7 @@ function DynCensus.run()
 
     -- 短期の需給変動（§4）は止めない。止めると店が全部固定価格になってゲームが壊れる。
     r.expected, r.drift, r.held = expected, drift, drifting
+    r.basketPrice = basket   -- §6.5 の較正が「所持金中央値 / バスケット価格」を見るのに使う
     return r
 end
 

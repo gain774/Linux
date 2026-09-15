@@ -116,3 +116,9 @@ exports('SetItemFixed', function(item, fixed)
 end)
 
 exports('IsReady', function() return DynState.count() > 0 end)
+
+--- 新規キャラの開始所持金（§6.3）。dyn_economy_bridge が vorp_NewCharacter を
+--- 拾って呼ぶ。既存キャラの所持金には一切関わらない
+exports('GetStartingCash', function()
+    return DynCalibration.startingCash()
+end)

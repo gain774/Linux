@@ -91,3 +91,52 @@ Config.Census = {
     -- 空なら扱っている全品目から作る（品目を足すたびに基準が変わるので推奨しない）。
     basket = { 'corn', 'wheat', 'meat', 'coal', 'flour' },
 }
+
+--[[
+  新規キャラの開始所持金（§6.3）。既存キャラの所持金には絶対に触らない
+  （適用されるのは vorp_NewCharacter イベントで検知した新規作成キャラのみ）。
+]]
+Config.Economy = {
+    startingMode    = 'basket',  -- 'basket'（推奨） | 'curve'（§7 併用時） | 'fixed'
+    startingBaskets = 1.5,       -- startingMode='basket' のとき、基準バスケット何個分から始めるか
+    startingFixed   = 100,       -- startingMode='fixed' のときだけ使う
+}
+
+--[[
+  自動較正（§6〜§6.9）。手で物価を書き直す作業を「スカラー1個の較正」に縮める。
+
+  全レイヤーを独立に切れる（§7.7 のトグル表どおり）。上から下に行くほど
+  経済への介入が強くなるので、bootstrap 以外は既定 OFF。2週間ほど実測を
+  溜めてから有効化することを推奨する（§6.10）。
+]]
+Config.Calibration = {
+    enabled   = true,   -- ★キルスイッチ。false でこの節（§6.5〜6.7）をすべて止める
+                         -- （§4 の需給変動・§6.2 の起動時較正には影響しない）
+    bootstrap = true,   -- 導入時の初期値決定（§6.2）
+    wealth    = false,  -- 所持金分布への追従（§6.5）
+    yield     = false,  -- 収集効率アンカー（§6.6）
+    moneySupply = false, -- マネーサプライ PI 制御（§6.7）
+
+    -- §6.5 所持金分布への追従
+    wealthK           = 0.15,   -- 1 日あたりの反応の強さ
+    wealthDailyClamp  = 0.02,   -- 1 日 ±2%
+    wealthSinkCoupling = 0.5,   -- β。NPC 買取（金のソース）側の連動を弱める係数
+
+    -- §6.6 収集効率アンカー
+    yieldMinUniqueSellers = 5,
+    yieldMinPlaytimeHours = 20,
+    yieldBandLowMult   = 0.7,   -- 目標時給バンドの下限（その日の中央時給の何倍か）
+    yieldBandHighMult  = 1.3,
+    yieldMaxDailyPct   = 0.03,  -- price_index の 1 日あたりの変化上限 ±3%
+    -- 何分おきにプレイ時間を積み上げるか（playtime.lua のティック間隔）
+    playtimeTickMinutes = 5,
+
+    -- §6.7 マネーサプライ PI 制御
+    moneySupplyTargetGrowth = 0.0,   -- 1 日あたりの目標成長率
+    moneySupplyKp = 2.0,
+    moneySupplyKi = 0.5,
+
+    -- 日次ジョブを回す時刻。intervalHours ごとではなく「1 日 1 回」に固定する
+    -- （§6.9: 全ての較正は 1 日 1 回・小刻み・クランプ、が安全装置の前提のため）
+    dailyStartupDelaySec = 90,
+}

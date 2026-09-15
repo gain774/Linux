@@ -45,6 +45,7 @@ local expected = {
     'dyn_items', 'dyn_item_state', 'dyn_npc_tx', 'dyn_recipes',
     'dyn_recipe_inputs', 'dyn_price_history', 'dyn_econ_config',
     'dyn_econ_snapshot', 'dyn_wealth_outlier',
+    'dyn_player_playtime', 'dyn_item_yield',
 }
 for _, t in ipairs(expected) do
     local found = false

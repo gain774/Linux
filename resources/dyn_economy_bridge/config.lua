@@ -16,6 +16,16 @@ BridgeConfig = {
     -- 通貨記号。通知の文面に使う
     currencyLabel = '$',
 
+    --[[
+      新規キャラの開始所持金をサーバーの物価から自動で決める（§6.3）。
+      vorp_character 自体は Config.initMoney という固定額で新規キャラを作るので、
+      vorp_NewCharacter イベントを拾ってから dyn_economy の算出値との差分だけ
+      調整する。既存キャラの所持金には絶対に触らない（新規作成時の一度きり）。
+    ]]
+    startingCash = {
+        enabled = true,
+    },
+
     -- 他リソースとの互換（server/compat.lua）
     compat = {
         -- 起動時に dyn_economy の品目を vorp_inventory の登録内容と突き合わせる。

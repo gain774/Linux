@@ -65,11 +65,11 @@ CreateThread(function()
         CreateThread(function()
             if Config.Census.onStartup then
                 Wait((Config.Census.startupDelay or 60) * 1000)
-                DynCensus.run()
+                DynCalibration.runDaily(DynCensus.run())
             end
             while true do
                 Wait((Config.Census.intervalHours or 24) * 3600000)
-                DynCensus.run()
+                DynCalibration.runDaily(DynCensus.run())
             end
         end)
     end
