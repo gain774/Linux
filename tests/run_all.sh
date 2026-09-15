@@ -32,6 +32,10 @@ echo "== 組合・補助金（§9.3〜9.5） =="
 "$LUA" tests/guild.lua
 echo
 
+echo "== 管理者ダッシュボード =="
+"$LUA" tests/admin.lua
+echo
+
 echo "== 結合テスト（価格スタック） =="
 "$LUA" tests/integration.lua
 echo

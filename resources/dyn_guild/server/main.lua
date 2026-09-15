@@ -188,34 +188,86 @@ end
 
 -- ============================== 運営コマンド ==============================
 
+--[[
+  以下 approve/reject/revoke の中身は、チャットコマンドと管理者ダッシュボード
+  (dyn_admin, NUI) の両方から呼べるように export もしている。「誰が承認したか」
+  の識別子だけ呼び出し側が用意して渡す（コンソールなら 'console'、NUI 経由なら
+  そのプレイヤーの識別子）。
+]]
+local function approveGuild(guildId, adminIdentifier)
+    if not guildId then return false, 'bad_id' end
+    local rows = GuildDb.query("SELECT * FROM dyn_guilds WHERE id = ? AND status = 'pending'", { guildId })
+    local guild = rows and rows[1]
+    if not guild then return false, 'not_found' end
+    if not GuildMath.canApprove(memberCount(guildId), GuildConfig.minFounders) then
+        return false, 'not_enough_members'
+    end
+    GuildDb.execute([[
+        UPDATE dyn_guilds SET status = 'approved', decided_at = NOW(), decided_by = ? WHERE id = ?
+    ]], { adminIdentifier, guildId })
+    return true, guild
+end
+
+local function rejectGuild(guildId, reason, adminIdentifier)
+    if not guildId then return false, 'bad_id' end
+    local rows = GuildDb.query("SELECT * FROM dyn_guilds WHERE id = ? AND status = 'pending'", { guildId })
+    local guild = rows and rows[1]
+    if not guild then return false, 'not_found' end
+    GuildDb.execute([[
+        UPDATE dyn_guilds SET status = 'rejected', decided_at = NOW(), decided_by = ?, reject_reason = ? WHERE id = ?
+    ]], { adminIdentifier, (reason and reason ~= '') and reason or nil, guildId })
+    return true, guild
+end
+
+local function revokeGuild(guildId, reason, adminIdentifier)
+    if not guildId then return false, 'bad_id' end
+    local rows = GuildDb.query("SELECT * FROM dyn_guilds WHERE id = ? AND status = 'approved'", { guildId })
+    local guild = rows and rows[1]
+    if not guild then return false, 'not_found' end
+    GuildDb.execute([[
+        UPDATE dyn_guilds SET status = 'revoked', decided_at = NOW(), decided_by = ?, reject_reason = ? WHERE id = ?
+    ]], { adminIdentifier, (reason and reason ~= '') and reason or nil, guildId })
+    return true, guild
+end
+
+--- 承認待ち一覧（メンバー数つき）。/guild list pending とダッシュボードで共有する
+local function pendingSummary()
+    local rows = GuildDb.query("SELECT id, name, category, state, founder, applied_at FROM dyn_guilds WHERE status = 'pending' ORDER BY applied_at") or {}
+    local out = {}
+    for _, r in ipairs(rows) do
+        out[#out + 1] = { id = r.id, name = r.name, category = r.category, state = r.state,
+                           founder = r.founder, memberCount = memberCount(r.id), appliedAt = r.applied_at }
+    end
+    return out
+end
+
+local function adminIdentifierFor(src)
+    return (src == 0) and 'console' or (GuildAdapter.getIdentifier(src) or tostring(src))
+end
+
 local function cmdListPending(src)
     if not isAdmin(src) then return reply(src, '権限がありません') end
-    local rows = GuildDb.query("SELECT id, name, category, state, founder FROM dyn_guilds WHERE status = 'pending' ORDER BY applied_at") or {}
-    if #rows == 0 then return reply(src, '承認待ちの申請はありません') end
-    for _, r in ipairs(rows) do
+    local list = pendingSummary()
+    if #list == 0 then return reply(src, '承認待ちの申請はありません') end
+    for _, g in ipairs(list) do
         reply(src, ('#%s %s [%s/%s] 発起人:%s メンバー%d人'):format(
-            tostring(r.id), r.name, r.category, r.state, r.founder, memberCount(r.id)))
+            tostring(g.id), g.name, g.category, g.state, g.founder, g.memberCount))
     end
 end
 
+local APPROVE_ERRORS = {
+    bad_id = '使い方: /guild approve <id>', not_found = '承認待ちの申請が見つかりません',
+}
 local function cmdApprove(src, args)
     if not isAdmin(src) then return reply(src, '権限がありません') end
-    local guildId = tonumber(args[1])
-    if not guildId then return reply(src, '使い方: /guild approve <id>') end
-
-    local rows = GuildDb.query("SELECT * FROM dyn_guilds WHERE id = ? AND status = 'pending'", { guildId })
-    local guild = rows and rows[1]
-    if not guild then return reply(src, '承認待ちの申請が見つかりません') end
-
-    if not GuildMath.canApprove(memberCount(guildId), GuildConfig.minFounders) then
-        return reply(src, ('人数が足りません（%d 人必要）'):format(GuildConfig.minFounders))
+    local ok, result = approveGuild(tonumber(args[1]), adminIdentifierFor(src))
+    if not ok then
+        if result == 'not_enough_members' then
+            return reply(src, ('人数が足りません（%d 人必要）'):format(GuildConfig.minFounders))
+        end
+        return reply(src, APPROVE_ERRORS[result] or ('失敗: ' .. tostring(result)))
     end
-
-    local admin = (src == 0) and 'console' or (GuildAdapter.getIdentifier(src) or tostring(src))
-    GuildDb.execute([[
-        UPDATE dyn_guilds SET status = 'approved', decided_at = NOW(), decided_by = ? WHERE id = ?
-    ]], { admin, guildId })
-    reply(src, ('%s を承認しました'):format(guild.name))
+    reply(src, ('%s を承認しました'):format(result.name))
 end
 
 local function cmdReject(src, args)
@@ -223,16 +275,9 @@ local function cmdReject(src, args)
     local guildId = tonumber(args[1])
     local reason = table.concat(args, ' ', 2)
     if not guildId then return reply(src, '使い方: /guild reject <id> <理由>') end
-
-    local rows = GuildDb.query("SELECT * FROM dyn_guilds WHERE id = ? AND status = 'pending'", { guildId })
-    local guild = rows and rows[1]
-    if not guild then return reply(src, '承認待ちの申請が見つかりません') end
-
-    local admin = (src == 0) and 'console' or (GuildAdapter.getIdentifier(src) or tostring(src))
-    GuildDb.execute([[
-        UPDATE dyn_guilds SET status = 'rejected', decided_at = NOW(), decided_by = ?, reject_reason = ? WHERE id = ?
-    ]], { admin, reason ~= '' and reason or nil, guildId })
-    reply(src, ('%s を却下しました'):format(guild.name))
+    local ok, result = rejectGuild(guildId, reason, adminIdentifierFor(src))
+    if not ok then return reply(src, '承認待ちの申請が見つかりません') end
+    reply(src, ('%s を却下しました'):format(result.name))
 end
 
 local function cmdRevoke(src, args)
@@ -240,17 +285,24 @@ local function cmdRevoke(src, args)
     local guildId = tonumber(args[1])
     local reason = table.concat(args, ' ', 2)
     if not guildId then return reply(src, '使い方: /guild revoke <id> <理由>') end
-
-    local rows = GuildDb.query("SELECT * FROM dyn_guilds WHERE id = ? AND status = 'approved'", { guildId })
-    local guild = rows and rows[1]
-    if not guild then return reply(src, '承認済みの組合が見つかりません') end
-
-    local admin = (src == 0) and 'console' or (GuildAdapter.getIdentifier(src) or tostring(src))
-    GuildDb.execute([[
-        UPDATE dyn_guilds SET status = 'revoked', decided_at = NOW(), decided_by = ?, reject_reason = ? WHERE id = ?
-    ]], { admin, reason ~= '' and reason or nil, guildId })
-    reply(src, ('%s の承認を取り消しました'):format(guild.name))
+    local ok, result = revokeGuild(guildId, reason, adminIdentifierFor(src))
+    if not ok then return reply(src, '承認済みの組合が見つかりません') end
+    reply(src, ('%s の承認を取り消しました'):format(result.name))
 end
+
+--- ダッシュボード（dyn_admin）向け。承認者の識別子は呼び出し側が用意する
+exports('ListPendingGuilds', pendingSummary)
+exports('ListApprovedGuilds', function()
+    local rows = GuildDb.query("SELECT id, name, category, state FROM dyn_guilds WHERE status = 'approved' ORDER BY name") or {}
+    local out = {}
+    for _, r in ipairs(rows) do
+        out[#out + 1] = { id = r.id, name = r.name, category = r.category, state = r.state, memberCount = memberCount(r.id) }
+    end
+    return out
+end)
+exports('ApproveGuild', function(guildId, adminIdentifier) return approveGuild(guildId, adminIdentifier or 'admin_ui') end)
+exports('RejectGuild', function(guildId, reason, adminIdentifier) return rejectGuild(guildId, reason, adminIdentifier or 'admin_ui') end)
+exports('RevokeGuild', function(guildId, reason, adminIdentifier) return revokeGuild(guildId, reason, adminIdentifier or 'admin_ui') end)
 
 RegisterCommand('guild', function(src, args)
     if not GuildConfig.enabled then return reply(src, '組合機能は無効です（GuildConfig.enabled = false）') end
