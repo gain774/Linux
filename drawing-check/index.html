@@ -637,7 +637,7 @@ async function extract(doc,cfg,prog){
     const items=tc.items.filter(it=>it.str&&it.str.trim()).map(itemToRun);
     let runs=mergeRuns(items),method='テキスト';
     const all=items.map(r=>r.str).join('');
-    const bad=(all.match(/[-�\u0000-\u001F]/g)||[]).length;
+    const bad=(all.match(/[\uE000-\uF8FF\uFFFD\u0000-\u001F]/g)||[]).length;
     const garbled=all.length>0&&bad/all.length>0.2;
     const pre=tokenizePage(runs,p,cfg).nums.length;
     const needOcr=cfg.ocrMode==='always'||(cfg.ocrMode==='auto'&&(all.length<20||garbled||pre<10));
